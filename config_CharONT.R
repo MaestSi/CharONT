@@ -41,10 +41,10 @@ do_in_silico_pcr <- 0
 #if do_in_silico_pcr <- 1, extract portion of reads between sequences pcr_silico_primer_one and pcr_silico_primer_two, pcr_silico_primer sequences included
 pcr_silico_primer_one <- "sequence_of_interest"
 pcr_silico_primer_two <- "sequence_of_interest"
-#if disable_porechop_demu_flag <- 1 porechop is only used for adapters trimming and not for doing a second round of demultiplexing; otherwise set disable_porechop_demu_flag <- 0
-disable_porechop_demu_flag <- 0
 #if skip_demultiplexing_flag <- 1 demultiplexing is skipped; otherwise set skip_demultiplexing_flag <- 0
 skip_demultiplexing_flag <- 0
+#require_two_barcodes_flag <- 1 if you want to keep only reads with a barcode (tag) at both ends of the read; otherwise set require_two_barcodes_flag <- 0
+require_two_barcodes_flag <- 0
 #min read quality value
 min_qual <- 7
 #minimum minor allele frequency; if less than min_maf*100% of reads are assigned to Allele #2, the sample is assumed homozygous
@@ -61,7 +61,7 @@ PIPELINE_DIR <- "/path/to/CharONT"
 MINICONDA_DIR <- "/path/to/miniconda3"
 #basecaller_dir
 BASECALLER_DIR <- "/path/to/ont-guppy-cpu/bin/"
-########################################################################################################
+########### End of user editable region ################################################################
 #load BioStrings package
 suppressMessages(library(Biostrings))
 #load stats package
@@ -72,7 +72,6 @@ CharONT <- paste0(PIPELINE_DIR, "/CharONT.R")
 DECONT <- paste0(PIPELINE_DIR, "/decONT.sh")
 #path to subsample fast5
 subsample_fast5 <- paste0(PIPELINE_DIR, "/subsample_fast5.sh")
-#########################################################################################################
 #MAFFT
 MAFFT <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/mafft")
 #VSEARCH
@@ -89,8 +88,6 @@ MINIMAP2 <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/minimap2")
 SAMTOOLS <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/samtools")
 #TRF
 TRF <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/trf")
-#PORECHOP
-PORECHOP <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/porechop")
 #PYCOQC
 PYCOQC <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/pycoQC")
 #NANOFILT

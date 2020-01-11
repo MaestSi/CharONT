@@ -39,12 +39,12 @@ if (!exists("fast_basecalling_flag") || flowcell == "FLO-MIN107") {
   fast_basecalling_flag <- 0
 }
 
-if (!exists("pair_strands_flag") || flowcell == "FLO-MIN106") {
-  pair_strands_flag <- 0
+if (!exists("require_two_barcodes_flag")) {
+  require_two_barcodes_flag <- 0
 }
 
-if (!exists("disable_porechop_demu_flag")) {
-  disable_porechop_demu_flag <- 0
+if (!exists("pair_strands_flag") || flowcell == "FLO-MIN106") {
+  pair_strands_flag <- 0
 }
 
 if (!exists("min_qual")) {
@@ -144,14 +144,13 @@ if (!dir.exists(d2)) {
     cat(text = "\n", file = logfile, append = TRUE)
     cat(text = "\n")
   } else {
-    cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), file = logfile, sep = ", ", append = TRUE)
-    cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), sep = ", ")
-    if (disable_porechop_demu_flag == 1) {
-      cat(text = "\n", file = logfile, append = TRUE)
-      cat(text = "\n")
-      cat(text = paste0("The second round of demultiplexing by Porechop is going to be be skipped"), file = logfile, sep = ", ", append = TRUE)
-      cat(text = paste0("The second round of demultiplexing by Porechop is going to be be skipped"), sep = ", ")
-    }
+     if (require_two_barcodes_flag == 1) {
+      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling, keeping only reads with barcodes at both ends of the read"), file = logfile, sep = ", ", append = TRUE)
+      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling, keeping only reads with barcodes at both ends of the read"), sep = ", ")
+     } else  {
+      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), file = logfile, sep = ", ", append = TRUE)
+      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), sep = ", ")
+     }
   }
   if (do_in_silico_pcr == 1) {
     cat(text = paste0("In-silico PCR will be performed using primers ", pcr_silico_primer_one, " and ", pcr_silico_primer_two), file = logfile, sep = ", ", append = TRUE)
@@ -205,7 +204,11 @@ if (skip_demultiplexing_flag == 1) {
 } else {
   cat(text = paste0("Demultiplexing started at ", date()), file = logfile, sep = "\n", append = TRUE)
   cat(text = paste0("Demultiplexing started at ", date()), sep = "\n")
-  system(paste0(demultiplexer, " -r -i ", d2_basecalling, " -t ", num_threads, " -s ", d2_preprocessing, " --barcode_kits \"", paste0(barcode_kits, collapse = " "), "\""))
+  if (require_two_barcodes_flag == 1) {
+    system(paste0(demultiplexer, " -r -i ", d2_basecalling, " -t ", num_threads, " -s ", d2_preprocessing,  " --trim_barcodes --require_barcodes_both_ends --num_extra_bases_trim ", primers_length, " --barcode_kits \"", paste0(barcode_kits, collapse = " "), "\""))
+  } else {
+    system(paste0(demultiplexer, " -r -i ", d2_basecalling, " -t ", num_threads, " -s ", d2_preprocessing,  " --trim_barcodes --num_extra_bases_trim ", primers_length, " --barcode_kits \"", paste0(barcode_kits, collapse = " "), "\""))
+  }
   cat(text = paste0("Demultiplexing finished at ", date()), file = logfile, sep = "\n", append = TRUE)
   cat(text = paste0("Demultiplexing finished at ", date()), sep = "\n")
   cat(text = "\n", file = logfile, append = TRUE)
@@ -249,23 +252,14 @@ demu_files <- list.files(path = d2_preprocessing, pattern = "BC", full.names = T
 for (i in 1:length(demu_files)) {
   BC_val_curr <- substr(x = basename(demu_files[i]), start = 3, stop = 4)
   if (paste0("BC", BC_val_curr) %in% BC_int) {
-    cat(text = paste0("Now trimming adapters with Porechop for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
-    cat(text = paste0("Now trimming adapters with Porechop for sample BC", BC_val_curr), sep = "\n")
-    if (disable_porechop_demu_flag == 1 || skip_demultiplexing_flag == 1) {
-      system(paste0("mkdir ", d2_preprocessing, "/BC", BC_val_curr, "_porechop_dir_tmp"))
-      system(paste0(PORECHOP, " -i ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq -o ", d2_preprocessing, "/BC", BC_val_curr, "_porechop_dir_tmp/BC", BC_val_curr, ".fastq"))
-    } else {
-      system(paste0(PORECHOP, " -i ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq -b ", d2_preprocessing, "/BC", BC_val_curr, "_porechop_dir_tmp --require_two_barcodes"))
-    }
-    fastq_file_curr <- list.files(path = paste0(d2_preprocessing, "/BC", BC_val_curr, "_porechop_dir_tmp"), pattern = paste0("BC", BC_val_curr, "\\.fastq"), full.names = TRUE)
+    fastq_file_curr <- list.files(path = paste0(d2_preprocessing), pattern = paste0("BC", BC_val_curr, "_tmp1\\.fastq"), full.names = TRUE)
     if (length(fastq_file_curr) == 0) {
       BC_int <- setdiff(BC_int, paste0("BC", BC_val_curr))
       BC_trash <- c(BC_trash, paste0("BC", BC_val_curr))
       next
     }
-    system(paste0("cp ", d2_preprocessing, "/BC", BC_val_curr, "_porechop_dir_tmp/BC", BC_val_curr, ".fastq ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq"))
-    system(paste0(SEQTK, " seq -A ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fasta"))
-    sequences <- readDNAStringSet(paste0(d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fasta"), "fasta")
+    system(paste0(SEQTK, " seq -A ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fasta"))
+    sequences <- readDNAStringSet(paste0(d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fasta"), "fasta")
     ws <- width(sequences)
     read_length <- ws
     cat(text = paste0("Mean read length (stdev) for sample BC", BC_val_curr, ": ", sprintf("%.0f", mean(ws)), " (", sprintf("%.0f", sd(ws)), ")"), file = logfile, sep = "\n", append = TRUE)
@@ -274,22 +268,22 @@ for (i in 1:length(demu_files)) {
     cat(text = paste0("Now filtering out reads with quality lower than ", min_qual, " for sample BC", BC_val_curr), sep = "\n")
 
     if (do_in_silico_pcr == 1) {
-      system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq | ", NANOFILT, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq"))
-      system(paste0(SEQTK, " seq -A ", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fasta"))
+      system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq"))
+      system(paste0(SEQTK, " seq -A ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fasta"))
       in_silico_pcr_sam_one <- paste0(d2_preprocessing, "/BC", BC_val_curr, "_pcr_primer_one.sam")
       in_silico_pcr_sam_two <- paste0(d2_preprocessing, "/BC", BC_val_curr, "_pcr_primer_two.sam")
       cat(text = paste0("Looking for pcr_silico_primer_one for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
       cat(text = paste0("Looking for pcr_silico_primer_one for sample BC", BC_val_curr), sep = "\n")
-      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq out=", in_silico_pcr_sam_one, " literal=", pcr_silico_primer_one, " qin=33 cutoff=0.8"))
+      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_one, " literal=", pcr_silico_primer_one, " qin=33 cutoff=0.8"))
       cat(text = paste0("Looking for pcr_silico_primer_two for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
       cat(text = paste0("Looking for pcr_silico_primer_two for sample BC", BC_val_curr), sep = "\n")
-      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq out=", in_silico_pcr_sam_two, " literal=", pcr_silico_primer_two, " qin=33 cutoff=0.8"))
+      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_two, " literal=", pcr_silico_primer_two, " qin=33 cutoff=0.8"))
       cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
       cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), sep = "\n")
       system(paste0(CUTPRIMERS, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq out=", d3, "/BC", BC_val_curr, ".fastq sam1=", in_silico_pcr_sam_one, " sam2=", in_silico_pcr_sam_two, " qin=33 fake=f include=t fixjunk"))
       cat(text = "\n", file = logfile, append = TRUE)
     } else {
-      system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq | ", NANOFILT, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
+      system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
     }
     system(paste0(SEQTK, " seq -A ", d3, "/BC", BC_val_curr, ".fastq > ", d3, "/BC", BC_val_curr, ".fasta"))
     sequences_pass <- readDNAStringSet(paste0(d3, "/BC", BC_val_curr, ".fasta"), "fasta")
