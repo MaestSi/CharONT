@@ -42,7 +42,7 @@ chmod 755 *
 ./install.sh
 ```
 
-A conda environment named _CharONT_env_ is created, where emboss, vsearch, seqtk, mafft, porechop, minimap2, samtools, nanopolish, NanoFilt, Tandem Repeat Finder, BBMap, pycoQC and R with package Biostrings are installed.
+A conda environment named _CharONT_env_ is created, where emboss, vsearch, seqtk, mafft, minimap2, samtools, medaka, NanoFilt, Tandem Repeat Finder, BBMap, pycoQC and R with package Biostrings are installed.
 Then, you can open the **config_CharONT.R** file with a text editor and set the variables _PIPELINE_DIR_ and _MINICONDA_DIR_ to the value suggested by the installation step.
 
 ## Overview
@@ -60,14 +60,12 @@ Otherwise, you can run the pipeline using the **Launch_CharONT.sh** script. If y
 
 **CharONT.R**
 
-Usage: Rscript CharONT.R \<home_dir\> \<fast5_dir\> \<sequencing_summary.txt\>
+Usage: Rscript CharONT.R \<home_dir\>
 
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running. The script is run by **CharONT_preprocessing.R**, but can be also run as a main script if you have already basecalled and demultiplexed your sequences.
 
 Inputs:
-* \<home_dir\>: directory containing fastq and fasta files for each sample named BC\<numbers\>.fast*
-* \<fast5_dir\>: directory containing raw fast5 files for nanopolish polishing, optional
-* \<sequencing_summary.txt\>: sequencing summary file generated during base-calling, used to speed-up polishing, optional
+* \<home_dir\>: directory containing fastq files for each sample named BC\<numbers\>.fast*
 
 Outputs (saved in <home_dir>):
 * \<"sample_name"\_first_allele.fasta\>: consensus sequence for first allele in fasta format
