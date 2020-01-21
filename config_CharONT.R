@@ -29,7 +29,9 @@ kit <- "SQK-LSK109"
 #flowcell chemistry (R9.4/R9.5 chemistry)
 flowcell <- "FLO-MIN106"
 #fast_basecalling_flag <- 1 if you want to use the fast basecalling algorithm; otherwise set fast_basecalling_flag <- 0 if you want to use the accurate but slow one (FLO-MIN106 only)
-fast_basecalling_flag <- 1
+fast_basecalling_flag <- 0
+#medaka_model: some possibilities are r941_min_fast_g303, r941_min_high_g303, r941_min_high_g330, r941_min_high_g344; # i) pore type; ii) sequencing device; iii) basecaller variant; iv) basecaller version
+medaka_model <- "r941_min_high_g344"
 #pair_strands_flag <- 1 if, in case a 1d2 kit and FLO-MIN107 flow-cell have been used, you want to perform 1d2 basecalling; otherwise set pair_strands_flag <- 0
 pair_strands_flag <- 0
 #set the maximum number of threads to be used
@@ -76,8 +78,8 @@ subsample_fast5 <- paste0(PIPELINE_DIR, "/subsample_fast5.sh")
 MAFFT <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/mafft")
 #VSEARCH
 VSEARCH <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/vsearch")
-#NANOPOLISH
-NANOPOLISH <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/nanopolish")
+#MEDAKA
+MEDAKA <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/medaka")
 #EMBOSS cons
 CONS <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/cons")
 #SEQTK

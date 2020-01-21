@@ -24,7 +24,7 @@ conda config --add channels bioconda
 conda config --add channels conda-forge
 conda config --add channels r
 conda config --add channels anaconda
-conda create -n CharONT_env emboss vsearch seqtk mafft minimap2 samtools nanopolish r bioconductor-biostrings trf NanoFilt bbmap
+conda create -n CharONT_env emboss vsearch seqtk mafft minimap2 samtools medaka r bioconductor-biostrings trf NanoFilt bbmap
 source activate CharONT_env
 pip install pycoQC
 echo -e "\n"

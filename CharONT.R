@@ -20,11 +20,9 @@ args = commandArgs(trailingOnly=TRUE)
 
 if (args[1] == "-h" | args[1] == "--help") {
   cat("", sep = "\n")
-  cat(paste0("Usage: Rscript CharONT.R <home_dir> <fast5_dir> <sequencing_summary.txt>"), sep = "\n")
+  cat(paste0("Usage: Rscript CharONT.R <home_dir>"), sep = "\n")
   cat(paste0("Note that config_CharONT.R must be in the same directory of CharONT.R"), sep = "\n")
   cat(paste0("<home_dir>: directory containing fastq and fasta files for each sample"), sep = "\n")
-  cat(paste0("<fast5_dir>: directory containing raw fast5 files for nanopolish polishing, optional"), sep = "\n")
-  cat(paste0("<sequencing_summary.txt>: sequencing summary file generated during base-calling, used to speed-up polishing, optional"), sep = "\n")
   stop(simpleError(sprintf("\r%s\r", paste(rep(" ", getOption("width")-1L), collapse=" "))))
 }
 
@@ -33,26 +31,8 @@ if (length(args) == 1) {
   if (!dir.exists(home_dir)) {
     stop(paste0(home_dir, " directory does not exist!"))
   }
-} else if (length(args) == 2) {
-  home_dir <- args[1]
-  fast5_dir <- args[2]
-  if (!dir.exists(home_dir)) {
-    stop(paste0(home_dir, " directory does not exist!"))
-  } else if (!dir.exists(fast5_dir)) {
-    stop(paste0(fast5_dir, " directory does not exist!"))
-  }
-} else if (length(args) == 3) {
-  home_dir <- args[1]
-  fast5_dir <- args[2]
-  sequencing_summary <- args[3]
-  if (!dir.exists(home_dir)) {
-    stop(paste0(home_dir, " directory does not exist!"))
-  } else if (!dir.exists(fast5_dir)) {
-    stop(paste0(fast5_dir, " directory does not exist!"))
-  }
-  
 } else {
-  stop("At least one input argument must be provided")
+  stop("Home directory has to be provided")
 }
 
 PIPELINE_DIR <- dirname(strsplit(commandArgs(trailingOnly = FALSE)[4],"=")[[1]][2])
@@ -94,25 +74,26 @@ if (!exists("fast_alignment_flag")) {
   fast_alignment_flag <- 1
 }
 
-
 #target reads for creating consensus
 TRC <- 200
-#target reads for polishing
-TRP <- 200
 
 logfile <- paste0(home_dir, "/logfile.txt")
 
+fastq_files <- list.files(path = home_dir, pattern = "BC\\d+\\.fastq", full.names = TRUE)
 fasta_files <- list.files(path = home_dir, pattern = "BC\\d+\\.fasta", full.names = TRUE)
-fastq_files <- paste0(home_dir, "/", gsub(pattern = "\\.fasta$", replacement = "\\.fastq", x = basename(fasta_files)))
 
 if (length(fasta_files) > 0) {
   cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
 } else {
-  stop(paste0("No fasta files in directory ", home_dir))
+  for (i in 1:length(fastq_files)) {
+    fasta_file_curr <- paste0(home_dir, "/", gsub(pattern = "\\.fastq$", replacement = "\\.fasta", x = basename(fastq_files[i])))
+    fasta_files <- c(fasta_files, fasta_file_curr)
+    system(paste0(SEQTK, " seq -A ", fastq_files[i], " > ", fasta_file_curr))
+  }
+  cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
 }
 
 target_reads_contig <- TRC
-target_reads_polishing <- TRP
 THR <- 0.85
 plurality_value <- 0.15*target_reads_contig
 
@@ -133,7 +114,6 @@ for (i in 1:length(fasta_files)) {
   num_reads_sample <- as.double(system(paste0("cat ", fasta_files[i], " | grep \"^>\" | wc -l"), intern=TRUE))
   num_reads_mac_first_preliminary <- as.double(system(paste0("cat ", decont_fa_first_preliminary, " | grep \"^>\" | wc -l"), intern=TRUE))
   target_reads_contig <- TRC
-  target_reads_polishing <- TRP
   first_allele_preliminary <- paste0(home_dir, "/", sample_name, "/", sample_name, "_preliminary.first.contig.fasta")
   if (num_reads_mac_first_preliminary < 3) {
     system(paste0("head -n2 ", home_dir, "/", sample_name, "/decontam_tmp_", sample_name, "/consensus_", sample_name, ".fasta > ", first_allele_preliminary))
@@ -441,7 +421,6 @@ for (i in 1:length(fasta_files)) {
   } 
   
   target_reads_contig <- TRC
-  target_reads_polishing <- TRP
   
   if (skip_first_allele_flag == 1) {
     cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_first), "%) from sample ", sample_name, " have been assigned to Allele #1; skipping"), sep = "\n")
@@ -482,30 +461,10 @@ for (i in 1:length(fasta_files)) {
     sequences <- seq(DNAStringSet_obj)
     names(DNAStringSet_obj_renamed) <- "Allele_number_1"
     writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_contig_first, format = "fasta", width = 20000)
-    if (exists("fast5_dir") && pair_strands_flag != 1) {
-      qual_filter <- 0
-      reads_polishing_fq_first <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_first.fastq")
-      reads_polishing_fa_first <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_first.fasta")  
-      seed_polishing <- 2 
-      system(paste0(SEQTK, " sample -s ", seed_polishing, " ", first_allele_reads_fq, " ", target_reads_polishing, " > ", reads_polishing_fq_first))
-      system(paste0(SEQTK, " seq -A ", reads_polishing_fq_first, " > ", reads_polishing_fa_first))
-      bam_file_first <- paste0(sample_dir, "/", sample_name, "_first.bam")
-      system(paste0(MINIMAP2, " -ax map-ont ", draft_contig_first, " ", reads_polishing_fa_first, " | ", SAMTOOLS, " view -h -q 55 -F 2048 | " , SAMTOOLS, " sort -o ", bam_file_first, " -T reads.tmp"))
-      system(paste0(SAMTOOLS," index ", bam_file_first))
-      cat(text = paste0("Running nanopolish for sample ", sample_name, " - Allele #1"), sep = "\n")
-      cat(text = "Indexing reads", sep = "\n")
-      if (seq_sum_flag == 1) {
-        system(paste0(NANOPOLISH, " index -d ", fast5_dir, " -s ", sequencing_summary, " ", reads_polishing_fa_first))
-      } else {
-        system(paste0(NANOPOLISH, " index -d ", fast5_dir, " ", reads_polishing_fa_first))
-      }
-      cat(text = paste0("Running nanopolish for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
-      output_vcf_first <- paste0(sample_dir, "/", "nanopolish_output_first.vcf")
-      output_vcf_filtered_first <- paste0(sample_dir, "/", "nanopolish_output_filtered_first.vcf")
-      system(paste0(NANOPOLISH, " variants --consensus --reads ", reads_polishing_fa_first, " --bam ", bam_file_first, " --genome ", draft_contig_first, " -p 1 --threads ", num_threads, " -o ", output_vcf_first))
-      system(paste0("cat ", output_vcf_first, " | grep \"^#\" > ", output_vcf_filtered_first))
-      system(paste0("cat ", output_vcf_first, " | grep -v \"^#\" | awk '$6 > ", qual_filter, " {print}' >> ", output_vcf_filtered_first))
-      system(paste0(NANOPOLISH, " vcf2fasta -g ", draft_contig_first, " ", output_vcf_filtered_first, " > ", first_allele_untrimmed))
+    if (pair_strands_flag != 1) {
+      cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
+      system(paste0(MEDAKA, "_consensus -i ", first_allele_reads_fq, " -d ", draft_contig_first, " -m ", medaka_model, " -t ", num_threads, " -o ", sample_dir, "/medaka_first_allele"))
+      system(paste0("cp ", sample_dir, "/medaka_first_allele/consensus.fasta ", first_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", first_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
     } else {
       system(paste0(SEQTK, " trimfq ", draft_contig_first, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
@@ -522,7 +481,6 @@ for (i in 1:length(fasta_files)) {
   }
   #create consensus sequence for Allele #2
   target_reads_contig <- TRC
-  target_reads_polishing <- TRP
   
   if (skip_second_allele_flag == 1) {
     cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_second), "%) from sample ", sample_name, " have been assigned to Allele #2; skipping"), sep = "\n")
@@ -563,30 +521,10 @@ for (i in 1:length(fasta_files)) {
     sequences <- seq(DNAStringSet_obj)
     names(DNAStringSet_obj_renamed) <- "Allele_number_2"
     writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_contig_second, format = "fasta", width = 20000)
-    if (exists("fast5_dir") && pair_strands_flag != 1) {
-      qual_filter <- 0
-      reads_polishing_fq_second <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_second.fastq")
-      reads_polishing_fa_second <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_second.fasta")  
-      seed_polishing <- 2 
-      system(paste0(SEQTK, " sample -s ", seed_polishing, " ", draft_reads_fq_second, " ", target_reads_polishing, " > ", reads_polishing_fq_second))
-      system(paste0(SEQTK, " seq -A ", reads_polishing_fq_second, " > ", reads_polishing_fa_second))
-      bam_file_second <- paste0(sample_dir, "/", sample_name, "_second.bam")
-      system(paste0(MINIMAP2, " -ax map-ont ", draft_contig_second, " ", reads_polishing_fa_second, " | ", SAMTOOLS, " view -h -q 55 -F 2048 | " , SAMTOOLS, " sort -o ", bam_file_second, " -T reads.tmp"))
-      system(paste0(SAMTOOLS," index ", bam_file_second))
-      cat(text = paste0("Running nanopolish for sample ", sample_name, " - Allele #2"), sep = "\n")
-      cat(text = "Indexing reads", sep = "\n")
-      if (seq_sum_flag == 1) {
-        system(paste0(NANOPOLISH, " index -d ", fast5_dir, " -s ", sequencing_summary, " ", reads_polishing_fa_second))
-      } else {
-        system(paste0(NANOPOLISH, " index -d ", fast5_dir, " ", reads_polishing_fa_second))
-      }
-      cat(text = paste0("Running nanopolish for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
-      output_vcf_second <- paste0(sample_dir, "/", "nanopolish_output_second.vcf")
-      output_vcf_filtered_second <- paste0(sample_dir, "/", "nanopolish_output_filtered_second.vcf")
-      system(paste0(NANOPOLISH, " variants --consensus --reads ", reads_polishing_fa_second, " --bam ", bam_file_second, " --genome ", draft_contig_second, " -p 1 --threads ", num_threads, " -o ", output_vcf_second))
-      system(paste0("cat ", output_vcf_second, " | grep \"^#\" > ", output_vcf_filtered_second))
-      system(paste0("cat ", output_vcf_second, " | grep -v \"^#\" | awk '$6 > ", qual_filter, " {print}' >> ", output_vcf_filtered_second))
-      system(paste0(NANOPOLISH, " vcf2fasta -g ", draft_contig_second, " ", output_vcf_filtered_second, " > ", second_allele_untrimmed))
+    if (pair_strands_flag != 1) {
+      cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
+      system(paste0(MEDAKA, "_consensus -i ", second_allele_reads_fq, " -d ", draft_contig_second, " -m ", medaka_model, " -t ", num_threads, " -o ", sample_dir, "/medaka_second_allele"))
+      system(paste0("cp ", sample_dir, "/medaka_second_allele/consensus.fasta ", second_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", second_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
     } else {
       system(paste0(SEQTK, " trimfq ", draft_contig_second, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
