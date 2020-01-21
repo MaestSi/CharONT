@@ -65,7 +65,7 @@ Usage: Rscript CharONT.R \<home_dir\>
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running. The script is run by **CharONT_preprocessing.R**, but can be also run as a main script if you have already basecalled and demultiplexed your sequences.
 
 Inputs:
-* \<home_dir\>: directory containing fastq files for each sample named BC\<numbers\>.fast*
+* \<home_dir\>: directory containing fastq files for each sample named BC\<numbers\>.fastq
 
 Outputs (saved in <home_dir>):
 * \<"sample_name"\_first_allele.fasta\>: consensus sequence for first allele in fasta format
