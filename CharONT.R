@@ -249,7 +249,7 @@ for (i in 1:length(fasta_files)) {
   }
   #linear model with double weigth for longest indel
   #sc_thr <- 0 to consider reads carrying a big soft-clipped portion different to reads with big indel (sc_flanking_correction <- 1)
-  #otherwise, if sc_thr <- 0.3 soft-clipped portions' lengths are corrected to account for flanking regions length
+  #otherwise, if there is at least one read carrying an indel as big as sc_thr*100% the longest soft-clipped portion, soft-clipped portions' lengths are corrected to account for flanking regions length
   sc_thr <- 0
   for (k in 1:length(cigar_strings)) {
     #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
@@ -293,6 +293,10 @@ for (i in 1:length(fasta_files)) {
         score[k] <- ins_block_lengths[k] - sc_flanking_correction*clipping_block_lengths[k] - del_block_lengths[k] + max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
       }
     }
+    if (length(which(is.na(score) == TRUE)) > 0) {
+      ind_NA_score <- which(is.na(score) == TRUE)
+      score[ind_NA_score] <- 0
+    } 
   }
   #skip clustering and assign all reads to one allele if studying haploid chromosome or if there are not 2 different maximum non-matching lengths across all reads
   if (haploid_flag == 1 || length(score) < 2) {
