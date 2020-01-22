@@ -11,7 +11,7 @@
 **Prerequisites**
 
 * Miniconda3.
-Tested with conda 4.7.12.
+Tested with conda 4.8.1.
 ```which conda``` should return the path to the executable.
 If you don't have Miniconda3 installed, you could download and install it with:
 ```
@@ -22,7 +22,7 @@ chmod 755 Miniconda3-latest-Linux-x86_64.sh
 
 Then, after completing _CharONT_ installation, set the _MINICONDA_DIR_ variable in **config_CharONT.R** to the full path to miniconda3 directory.
 
-* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v3.4.
+* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v3.4.4.
 If you don't have [Guppy](https://community.nanoporetech.com/downloads) installed, choose an appropriate version and install it.
 For example, you could download and unpack the archive with:
 ```
@@ -31,6 +31,10 @@ tar -xf ont-guppy-cpu_version_of_interest.tar.gz
 ```
 A directory _ont-guppy-cpu_ should have been created in your current directory.
 Then, after completing _CharONT_ installation, set the _BASECALLER_DIR_ variable in **config_CharONT.R** to the full path to _ont-guppy-cpu/bin_ directory.
+
+* gcc ver. >= 4.8
+
+* cmake ver. >= 3.2
 
 
 **Installation**
@@ -42,7 +46,7 @@ chmod 755 *
 ./install.sh
 ```
 
-A conda environment named _CharONT_env_ is created, where emboss, vsearch, seqtk, mafft, minimap2, samtools, medaka, NanoFilt, Tandem Repeat Finder, BBMap, pycoQC and R with package Biostrings are installed.
+A conda environment named _CharONT_env_ is created, where emboss, vsearch, seqtk, mafft, minimap2, samtools, racon, medaka, NanoFilt, Tandem Repeat Finder, BBMap, pycoQC and R with package Biostrings are installed.
 Then, you can open the **config_CharONT.R** file with a text editor and set the variables _PIPELINE_DIR_ and _MINICONDA_DIR_ to the value suggested by the installation step.
 
 ## Overview
@@ -60,14 +64,14 @@ Otherwise, you can run the pipeline using the **Launch_CharONT.sh** script. If y
 
 **CharONT.R**
 
-Usage: Rscript CharONT.R \<home_dir\>
+Usage: Rscript CharONT.R \<analysis_dir\>
 
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running. The script is run by **CharONT_preprocessing.R**, but can be also run as a main script if you have already basecalled and demultiplexed your sequences.
 
 Inputs:
-* \<home_dir\>: directory containing fastq files for each sample named BC\<numbers\>.fastq
+* \<analysis_dir\>: directory containing fastq files for each sample named BC\<numbers\>.fastq
 
-Outputs (saved in <home_dir>):
+Outputs (saved in <analysis_dir>):
 * \<"sample_name"\_first_allele.fasta\>: consensus sequence for first allele in fasta format
 * \<"sample_name"\_first_allele.fasta."trf scores".html\>: Tandem Repeat Finder report for first allele sequence
 * \<"sample_name"\_second_allele.fasta\>: consensus sequence for second allele in fasta format
@@ -133,7 +137,3 @@ Note: configuration script, must be modified before running _Launch_CharONT.sh_ 
 **subsample_fast5.sh**
 
 Note: script run by _CharONT_preprocessing.R_ if _do_subsampling_flag_ variable is set to 1 in _config_CharONT.R_.
-
-**decONT.sh**
-
-Note: script run by _CharONT.R_ for clustering reads at 85% identity and keeping only reads in the most abundant cluster, representing one of the two alleles; these reads are used for creating a draft consensus for the first allele.
