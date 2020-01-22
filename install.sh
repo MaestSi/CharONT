@@ -20,15 +20,30 @@
 
 PIPELINE_DIR=$(realpath $( dirname "${BASH_SOURCE[0]}" ))
 MINICONDA_DIR=$(which conda | sed 's/miniconda3.*$/miniconda3/')
-conda config --add channels bioconda
-conda config --add channels conda-forge
 conda config --add channels r
 conda config --add channels anaconda
-conda create -n CharONT_env emboss vsearch seqtk mafft minimap2 samtools medaka r bioconductor-biostrings trf NanoFilt bbmap
+conda config --add channels conda-forge
+conda config --add channels bioconda
+
+conda create -n CharONT_env emboss vsearch seqtk mafft minimap2 samtools medaka r bioconductor-biostrings trf NanoFilt bbmap pycoqc
+
 source activate CharONT_env
-pip install pycoQC
+
+#gcc 4.8+ and cmake 3.2+ are prerequisites
+cd $MINICONDA_DIR"/envs/CharONT_env"
+git clone --recursive https://github.com/lbcb-sci/racon.git racon
+cd racon
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+ln -s $MINICONDA_DIR"/envs/CharONT_env/racon/build/bin/racon" $MINICONDA_DIR"/envs/CharONT_env/bin"
+
+cd $PIPELINE_DIR
+
 echo -e "\n"
 echo "Modify variables PIPELINE_DIR and MINICONDA_DIR in config_CharONT.R"
-echo -e "PIPELINE_DIR: $PIPELINE_DIR"
-echo -e "MINICONDA_DIR: $MINICONDA_DIR \n"
+echo -e "PIPELINE_DIR <- \"$PIPELINE_DIR\""
+echo -e "MINICONDA_DIR <- \"$MINICONDA_DIR\""
+echo -e "\n"
 

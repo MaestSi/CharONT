@@ -20,16 +20,16 @@ args = commandArgs(trailingOnly=TRUE)
 
 if (args[1] == "-h" | args[1] == "--help") {
   cat("", sep = "\n")
-  cat(paste0("Usage: Rscript CharONT.R <home_dir>"), sep = "\n")
+  cat(paste0("Usage: Rscript CharONT.R <analysis_dir>"), sep = "\n")
   cat(paste0("Note that config_CharONT.R must be in the same directory of CharONT.R"), sep = "\n")
-  cat(paste0("<home_dir>: directory containing fastq and fasta files for each sample"), sep = "\n")
+  cat(paste0("<analysis_dir>: directory containing fastq and fasta files for each sample"), sep = "\n")
   stop(simpleError(sprintf("\r%s\r", paste(rep(" ", getOption("width")-1L), collapse=" "))))
 }
 
 if (length(args) == 1) {
-  home_dir <- args[1]
-  if (!dir.exists(home_dir)) {
-    stop(paste0(home_dir, " directory does not exist!"))
+  analysis_dir <- args[1]
+  if (!dir.exists(analysis_dir)) {
+    stop(paste0(analysis_dir, " directory does not exist!"))
   }
 } else {
   stop("Home directory has to be provided")
@@ -77,25 +77,42 @@ if (!exists("fast_alignment_flag")) {
 #target reads for creating consensus
 TRC <- 200
 
-logfile <- paste0(home_dir, "/logfile.txt")
+logfile <- paste0(analysis_dir, "/logfile.txt")
 
-fastq_files <- list.files(path = home_dir, pattern = "BC\\d+\\.fastq", full.names = TRUE)
-fasta_files <- list.files(path = home_dir, pattern = "BC\\d+\\.fasta", full.names = TRUE)
+fastq_files <- list.files(path = analysis_dir, pattern = "BC\\d+\\.fastq", full.names = TRUE)
+fasta_files <- list.files(path = analysis_dir, pattern = "BC\\d+\\.fasta", full.names = TRUE)
+
+if (length(fastq_files) == 0) {
+  stop(paste0("No fastq files BC<numbers>.fastq in ", analysis_dir, " directory"))
+}
 
 if (length(fasta_files) > 0) {
   cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
 } else {
   for (i in 1:length(fastq_files)) {
-    fasta_file_curr <- paste0(home_dir, "/", gsub(pattern = "\\.fastq$", replacement = "\\.fasta", x = basename(fastq_files[i])))
+    fasta_file_curr <- paste0(analysis_dir, "/", gsub(pattern = "\\.fastq$", replacement = "\\.fasta", x = basename(fastq_files[i])))
     fasta_files <- c(fasta_files, fasta_file_curr)
     system(paste0(SEQTK, " seq -A ", fastq_files[i], " > ", fasta_file_curr))
   }
   cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
 }
 
-target_reads_contig <- TRC
+available_medaka_models <- system("medaka tools list_models", intern = TRUE)
+
+if (grep(pattern = medaka_model, x = available_medaka_models) == 1) {
+  cat(text = paste0("Medaka model: ", medaka_model), sep = "\n")
+  cat(text = paste0("Medaka model: ", medaka_model), file = logfile, sep = "\n", append = TRUE)
+} else {
+  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g344 was selected"), sep = "\n")
+  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g344 was selected"), file = logfile, sep = "\n", append = TRUE)
+  medaka_model <- "r941_min_high_g344"
+}
+
+target_reads_consensus <- TRC
 THR <- 0.85
-plurality_value <- 0.15*target_reads_contig
+plurality_value <- 0.15*target_reads_consensus
+max_num_reads_clustering <- 500
+seed <- 1
 
 #cycle over fasta files
 for (i in 1:length(fasta_files)) {
@@ -103,36 +120,48 @@ for (i in 1:length(fasta_files)) {
   skip_second_allele_flag <- 0
   sample_dir <- gsub(pattern = "\\.fasta", replacement = "", x = fasta_files[i])
   sample_name <- basename(sample_dir)
+  subset_reads_fa <- paste0(sample_dir, "/", sample_name, "_subset_reads.fasta")
   dir.create(sample_dir)
-  #perform clustering and create a preliminary version for Allele #1
-  decont_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_decont.fasta")
-  decont_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_decont.fastq")
-  system(paste0(DECONT, " ", fasta_files[i], " ", VSEARCH, " ", SEQTK, " ", THR))
-  system(paste0("mv ", home_dir, "/decontam_tmp_", sample_name, " ", sample_dir))
-  system(paste0("mv ", home_dir, "/", sample_name, "_decont.fasta ", sample_dir))
-  system(paste0("mv ", home_dir, "/", sample_name, "_decont.fastq ", sample_dir))
-  num_reads_sample <- as.double(system(paste0("cat ", fasta_files[i], " | grep \"^>\" | wc -l"), intern=TRUE))
-  num_reads_mac_first_preliminary <- as.double(system(paste0("cat ", decont_fa_first_preliminary, " | grep \"^>\" | wc -l"), intern=TRUE))
-  target_reads_contig <- TRC
-  first_allele_preliminary <- paste0(home_dir, "/", sample_name, "/", sample_name, "_preliminary.first.contig.fasta")
-  if (num_reads_mac_first_preliminary < 3) {
-    system(paste0("head -n2 ", home_dir, "/", sample_name, "/decontam_tmp_", sample_name, "/consensus_", sample_name, ".fasta > ", first_allele_preliminary))
-  } else {
-    if (num_reads_mac_first_preliminary < target_reads_contig) {
-      target_reads_contig <- num_reads_mac_first_preliminary
-      target_reads_polishing <- num_reads_mac_first_preliminary
+  vsearch_clustering_dir <- paste0(sample_dir, "/clustering_vsearch")
+  dir.create(vsearch_clustering_dir)
+  #perform vsearch clustering and create a preliminary version for Allele #1
+  system(paste0(SEQTK, " sample -s ", seed , " ", fasta_files[i], " ",  max_num_reads_clustering, " > ", subset_reads_fa))
+  ids_mac_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_ids_mac.txt")
+  mac_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_mac.fasta")
+  mac_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_mac.fastq")
+  system(paste0(VSEARCH, " --cluster_smallmem ", subset_reads_fa, " --usersort --id ", THR, " --iddef 2 --clusterout_sort --fasta_width 0 --strand both --sizeout --consout ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta --clusters ", vsearch_clustering_dir, "/", sample_name, "_cluster"))
+  centroid_mac <- system(paste0("head -n1 ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta"), intern = TRUE)
+  id_centroid <-  system(paste0("echo ", "\"", centroid_mac, "\"", " | sed 's/centroid=//g' | sed 's/;seqs.*$//g'"), intern = TRUE)
+  clusters_vsearch <- list.files(path = vsearch_clustering_dir, pattern = paste0(sample_name, "_cluster"), full.names = TRUE)
+  for (i in 1:length(clusters_vsearch)) {
+    cluster_match <- system(paste0("cat ", clusters_vsearch[i], " | grep \"", id_centroid, "\""), intern = TRUE)
+    if (length(cluster_match) > 0) {
+      mac_file <- clusters_vsearch[i]
+      system(paste0("cat ", mac_file, " | grep ", "\"",  "^>", "\"", "  | sed 's/^>//' | sed 's/;.*$//' > ", ids_mac_first_preliminary))
+      system(paste0(SEQTK, " subseq ", fasta_files[i], " ", ids_mac_first_preliminary, " > ", mac_fa_first_preliminary))
+      system(paste0(SEQTK, " subseq ", fastq_files[i], " ", ids_mac_first_preliminary, " > ", mac_fq_first_preliminary))
+      break
     }
-    plurality_value <- 0.15*target_reads_contig
-    first_allele_preliminary_tmp1 <- paste0(sample_dir, "/", sample_name, "_preliminary.first.contig_tmp1.fasta")
-    first_allele_preliminary_tmp2 <- paste0(sample_dir, "/", sample_name, "_preliminary.first.contig_tmp2.fasta")
-    first_allele_preliminary_first <- paste0(sample_dir, "/", sample_name, "_preliminary.first.contig.fasta")
+  }
+  num_reads_sample <- as.double(system(paste0("cat ", fasta_files[i], " | grep \"^>\" | wc -l"), intern=TRUE))
+  num_reads_mac_first_preliminary <- as.double(system(paste0("cat ", mac_fa_first_preliminary, " | grep \"^>\" | wc -l"), intern=TRUE))
+  target_reads_consensus <- TRC
+  first_allele_preliminary_tmp1 <- paste0(sample_dir, "/", sample_name, "_preliminary_first_allele_tmp1.fasta")
+  first_allele_preliminary_tmp2 <- paste0(sample_dir, "/", sample_name, "_preliminary_first_allele_tmp2.fasta")
+  first_allele_preliminary <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_preliminary_first_allele.fasta")
+  if (num_reads_mac_first_preliminary < 3) {
+    system(paste0("head -n2 ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta > ", first_allele_preliminary))
+  } else {
+    if (num_reads_mac_first_preliminary < target_reads_consensus) {
+      target_reads_consensus <- num_reads_mac_first_preliminary
+    }
+    plurality_value <- 0.15*target_reads_consensus
     sequences <- readDNAStringSet(fasta_files[i], "fasta")
     ws <- width(sequences)
     amplicon_length <- ceiling(mean(ws))
-    draft_reads_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_contig, "_reads_first_preliminary.fastq")
-    draft_reads_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_contig, "_reads_first_preliminary.fasta")
-    seed <- 1
-    system(paste0(SEQTK, " sample -s ", seed , " ", decont_fq_first_preliminary, " ",  target_reads_contig, " > ", draft_reads_fq_first_preliminary))
+    draft_reads_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_preliminary_first_allele.fastq")
+    draft_reads_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_preliminary_first_allele.fasta")
+    system(paste0(SEQTK, " sample -s ", seed , " ", mac_fq_first_preliminary, " ",  target_reads_consensus, " > ", draft_reads_fq_first_preliminary))
     system(paste0(SEQTK, " seq -A ", draft_reads_fq_first_preliminary, " > ", draft_reads_fa_first_preliminary))
     mfa_file_first_preliminary <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa_first_preliminary)
     system(paste0(MAFFT ," --auto --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa_first_preliminary, " > ", mfa_file_first_preliminary))
@@ -180,8 +209,11 @@ for (i in 1:length(fasta_files)) {
     del_block_lengths_curr_read <- c()
     ins_block_lengths_curr_read <- c()
     clipping_block_lengths_curr_read <- c()
+    #if there are non matching bases
     if (nonref_starting_coords[1] != -1) {
+      #if there are deletions
       if (del_starting_coords[1] != -1) {
+        #extract lengths of deletions
         for (j in 1:length(del_starting_coords)) {
           del_block_curr <- as.numeric(substr(x = cigar_string, start = (del_starting_coords[j]), stop = (del_starting_coords[j] + attr(del_starting_coords, "match.length")[j] - 2)))
           del_block_lengths_curr_read <- c(del_block_lengths_curr_read, del_block_curr)
@@ -192,7 +224,9 @@ for (i in 1:length(fasta_files)) {
         del_block_lengths <- c(del_block_lengths, 0)
         max_del_block_lengths <- c(max_del_block_lengths, 0)
       }
+      #if there are insertions
       if (ins_starting_coords[1] != -1) {
+        #extract lengths of insertions
         for (m in 1:length(ins_starting_coords)) {
           ins_block_curr <- as.numeric(substr(x = cigar_string, start = (ins_starting_coords[m]), stop = (ins_starting_coords[m] + attr(ins_starting_coords, "match.length")[m] - 2)))
           ins_block_lengths_curr_read <- c(ins_block_lengths_curr_read, ins_block_curr)
@@ -203,7 +237,9 @@ for (i in 1:length(fasta_files)) {
         ins_block_lengths <- c(ins_block_lengths, 0)
         max_ins_block_lengths <- c(max_ins_block_lengths, 0)
       }
+      #if there are soft-clipped bases
       if (clipping_starting_coords[1] != -1) {
+        #extract length of soft-clipped bases if they are longer than min_clipped_len
         for (l in 1:length(clipping_starting_coords)) {
           clipping_block_curr <- as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2)))
           if (clipping_block_curr < min_clipped_len) {
@@ -228,51 +264,72 @@ for (i in 1:length(fasta_files)) {
     }
   }
   #linear model with double weigth for longest indel
-  #sc_thr <- 0 to consider reads carrying a big soft-clipped portion different to reads with big indel (sc_flanking_correction <- 1)
-  #otherwise, if there is at least one read carrying an indel as big as sc_thr*100% the longest soft-clipped portion, soft-clipped portions' lengths are corrected to account for flanking regions length
-  sc_thr <- 0
+  #cycle over reads
   for (k in 1:length(cigar_strings)) {
     #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
     if (mean(max_ins_block_lengths) > mean(max_del_block_lengths)) {
-      #soft-clipped regions also include flanking regions -> apply correction
-      if (max(max_clipping_block_lengths) > 0) {
-        #if there is at least one read carrying an insertion as big as sc_thr*100% the longest soft-clipped portion, evaluate sc_flanking_correction to correct for flanking region length
-        if (max(max_ins_block_lengths)/max(max_clipping_block_lengths) > sc_thr) {
-          sc_flanking_correction <- max(max_ins_block_lengths)/mean(max_clipping_block_lengths[which(max_clipping_block_lengths != 0)])
-        } else {
-          sc_flanking_correction <- 1
-        }
-      } else {
-        sc_flanking_correction <- 1
-      }
       #if read k carries bigger insertion than deletion it probably comes from allele #2 (score >> 0)
-      if (max(max_ins_block_lengths[k], sc_flanking_correction*max_clipping_block_lengths[k]) > max_del_block_lengths[k]) {
-        score[k] <- sc_flanking_correction*clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] + max(sc_flanking_correction*max_clipping_block_lengths[k], max_ins_block_lengths[k])
-        #if read k carries bigger deletion than insertion it probably comes from allele #1 (score ~ 0)
+      if (max(max_ins_block_lengths[k], max_clipping_block_lengths[k]) > max_del_block_lengths[k]) {
+        score[k] <- clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] + max(max_clipping_block_lengths[k], max_ins_block_lengths[k])
+      #if read k carries bigger deletion than insertion it probably comes from allele #1 (score ~ 0)
       } else {
-        score[k] <- sc_flanking_correction*clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] - max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
+        score[k] <- ins_block_lengths[k] - del_block_lengths[k] - max_del_block_lengths[k]
       }
-      #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
+    #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
     } else {
-      #soft-clipped regions also include flanking regions -> apply correction
-      if (max(max_clipping_block_lengths) > 0) {
-        #if there is at least one read carrying a deletion as big as sc_thr*100% the longest soft-clipped portion, evaluate sc_flanking_correction to correct for flanking region length
-        if (max(max_del_block_lengths)/max(max_clipping_block_lengths) > sc_thr) {
-          sc_flanking_correction <- max(max_del_block_lengths)/mean(max_clipping_block_lengths[which(max_clipping_block_lengths != 0)])
+        #if read k carries bigger deletion than insertion, it probably comes from allele #2 (score << 0)
+        if (max(max_del_block_lengths[k], max_clipping_block_lengths[k]) > max_ins_block_lengths[k]) {
+          score[k] <- ins_block_lengths[k] - clipping_block_lengths[k] - del_block_lengths[k] - max(max_clipping_block_lengths[k], max_del_block_lengths[k])
+          #if read k carries bigger insertion than deletion it probably comes from allele #1 (score ~ 0)
         } else {
-          sc_flanking_correction <- 1
+          score[k] <- ins_block_lengths[k] - del_block_lengths[k] + max_ins_block_lengths[k]
         }
-      } else {
-        sc_flanking_correction <- 1
-      }
-      #if read k carries bigger deletion than insertion, it probably comes from allele #2 (score << 0)
-      if (max(max_del_block_lengths[k], max_clipping_block_lengths[k]) > max_ins_block_lengths[k]) {
-        score[k] <- ins_block_lengths[k] - sc_flanking_correction*clipping_block_lengths[k] - del_block_lengths[k] - max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
-        #if read k carries bigger insertion than deletion it probably comes from allele #1 (score ~ 0)
-      } else {
-        score[k] <- ins_block_lengths[k] - sc_flanking_correction*clipping_block_lengths[k] - del_block_lengths[k] + max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
-      }
     }
+    #sc_thr <- 0 to consider reads carrying a big soft-clipped portion different to reads with big indel (sc_flanking_correction <- 1)
+    #otherwise, if there is at least one read carrying an indel as big as sc_thr*100% the longest soft-clipped portion, soft-clipped portions' lengths are corrected to account for flanking regions length
+    #sc_thr <- 0
+    # #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
+    # if (mean(max_ins_block_lengths) > mean(max_del_block_lengths)) {
+    #   #soft-clipped regions also include flanking regions -> apply correction
+    #   if (max(max_clipping_block_lengths) > 0) {
+    #     #if there is at least one read carrying an insertion as big as sc_thr*100% the longest soft-clipped portion, evaluate sc_flanking_correction to correct for flanking region length
+    #     if (max(max_ins_block_lengths)/max(max_clipping_block_lengths) > sc_thr) {
+    #       sc_flanking_correction <- max(max_ins_block_lengths)/mean(max_clipping_block_lengths[which(max_clipping_block_lengths != 0)])
+    #     } else {
+    #       sc_flanking_correction <- 1
+    #     }
+    #   } else {
+    #     sc_flanking_correction <- 1
+    #   }
+    #   #if read k carries bigger insertion than deletion it probably comes from allele #2 (score >> 0)
+    #   if (max(max_ins_block_lengths[k], sc_flanking_correction*max_clipping_block_lengths[k]) > max_del_block_lengths[k]) {
+    #     score[k] <- sc_flanking_correction*clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] + max(sc_flanking_correction*max_clipping_block_lengths[k], max_ins_block_lengths[k])
+    #     #if read k carries bigger deletion than insertion it probably comes from allele #1 (score ~ 0)
+    #   } else {
+    #     score[k] <- sc_flanking_correction*clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] - max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
+    #   }
+    #   #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
+    # } else {
+    #   #soft-clipped regions also include flanking regions -> apply correction
+    #   if (max(max_clipping_block_lengths) > 0) {
+    #     #if there is at least one read carrying a deletion as big as sc_thr*100% the longest soft-clipped portion, evaluate sc_flanking_correction to correct for flanking region length
+    #     if (max(max_del_block_lengths)/max(max_clipping_block_lengths) > sc_thr) {
+    #       sc_flanking_correction <- max(max_del_block_lengths)/mean(max_clipping_block_lengths[which(max_clipping_block_lengths != 0)])
+    #     } else {
+    #       sc_flanking_correction <- 1
+    #     }
+    #   } else {
+    #     sc_flanking_correction <- 1
+    #   }
+    #   #if read k carries bigger deletion than insertion, it probably comes from allele #2 (score << 0)
+    #   if (max(max_del_block_lengths[k], max_clipping_block_lengths[k]) > max_ins_block_lengths[k]) {
+    #     score[k] <- ins_block_lengths[k] - sc_flanking_correction*clipping_block_lengths[k] - del_block_lengths[k] - max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
+    #     #if read k carries bigger insertion than deletion it probably comes from allele #1 (score ~ 0)
+    #   } else {
+    #     score[k] <- ins_block_lengths[k] - sc_flanking_correction*clipping_block_lengths[k] - del_block_lengths[k] + max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
+    #   }
+    # }
+    
     if (length(which(is.na(score) == TRUE)) > 0) {
       ind_NA_score <- which(is.na(score) == TRUE)
       score[ind_NA_score] <- 0
@@ -420,31 +477,30 @@ for (i in 1:length(fasta_files)) {
     skip_second_allele_flag <- 1
   } 
   
-  target_reads_contig <- TRC
+  target_reads_consensus <- TRC
   
   if (skip_first_allele_flag == 1) {
     cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_first), "%) from sample ", sample_name, " have been assigned to Allele #1; skipping"), sep = "\n")
     cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_first), "%) from sample ", sample_name, " have been assigned to Allele #1; skipping"),  file = logfile, sep = "\n", append = TRUE)
   } else {
-    if (num_reads_first_allele < target_reads_contig) {
-      target_reads_contig <- num_reads_first_allele
-      target_reads_polishing <- num_reads_first_allele
+    if (num_reads_first_allele < target_reads_consensus) {
+      target_reads_consensus <- num_reads_first_allele
       cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"), sep = "\n")
       cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"),  file = logfile, sep = "\n", append = TRUE)
     } 
-    plurality_value <- 0.15*target_reads_contig
-    draft_contig_first_tmp1 <- paste0(sample_dir, "/", sample_name, "_non_polished.contig_first_tmp1.fasta")
-    draft_contig_first_tmp2 <- paste0(sample_dir, "/", sample_name, "_non_polished.contig_first_tmp2.fasta")
-    draft_contig_first <- paste0(sample_dir, "/", sample_name, "_non_polished.contig_first.fasta")
-    first_allele_untrimmed <- paste0(home_dir, "/", sample_name, "/", sample_name, "_first_allele_untrimmed.fasta")
-    first_allele <- paste0(home_dir, "/", sample_name, "_first_allele.fasta")
+    plurality_value <- 0.15*target_reads_consensus
+    draft_consensus_first_tmp1 <- paste0(sample_dir, "/", sample_name, "_draft_first_allele_tmp1.fasta")
+    draft_consensus_first_tmp2 <- paste0(sample_dir, "/", sample_name, "_draft_first_allele_tmp2.fasta")
+    draft_consensus_first <- paste0(sample_dir, "/", sample_name, "_draft_first_allele.fasta")
+    first_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_draft_first_allele_untrimmed.fasta")
+    first_allele <- paste0(analysis_dir, "/", sample_name, "_first_allele.fasta")
     sequences <- readDNAStringSet(fasta_files[i], "fasta")
     ws <- width(sequences)
     amplicon_length <- ceiling(mean(ws))
-    draft_reads_fq_first <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_contig, "_reads_first.fastq")
-    draft_reads_fa_first <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_contig, "_reads_first.fasta")
+    draft_reads_fq_first <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_first_allele.fastq")
+    draft_reads_fa_first <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_first_allele.fasta")
     seed <- 1
-    system(paste0(SEQTK, " sample -s ", seed , " ", first_allele_reads_fq, " ",  target_reads_contig, " > ", draft_reads_fq_first))
+    system(paste0(SEQTK, " sample -s ", seed , " ", first_allele_reads_fq, " ",  target_reads_consensus, " > ", draft_reads_fq_first))
     system(paste0(SEQTK, " seq -A ", draft_reads_fq_first, " > ", draft_reads_fa_first))
     mfa_file_first <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa_first)
     #system(paste0(MAFFT, " --auto --thread ", num_threads, " --threadit 0 --adjustdirectionaccurately ", draft_reads_fa_first, " > ", mfa_file_first)) #threadit 0 if you need reproducible results
@@ -453,58 +509,63 @@ for (i in 1:length(fasta_files)) {
     } else {
       system(paste0(MAFFT , "-linsi --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa_first, " > ", mfa_file_first))
     }
-    system(paste0(CONS, " -sequence ", mfa_file_first, " -plurality ", plurality_value, " -outseq ", draft_contig_first_tmp1))
-    system(paste0("sed 's/[nN]//g' ", draft_contig_first_tmp1, " > ", draft_contig_first_tmp2))
-    DNAStringSet_obj <- readDNAStringSet(draft_contig_first_tmp2, "fasta")
+    system(paste0(CONS, " -sequence ", mfa_file_first, " -plurality ", plurality_value, " -outseq ", draft_consensus_first_tmp1))
+    system(paste0("sed 's/[nN]//g' ", draft_consensus_first_tmp1, " > ", draft_consensus_first_tmp2))
+    DNAStringSet_obj <- readDNAStringSet(draft_consensus_first_tmp2, "fasta")
     DNAStringSet_obj_renamed <- DNAStringSet_obj
     original_headers <- names(DNAStringSet_obj)
     sequences <- seq(DNAStringSet_obj)
     names(DNAStringSet_obj_renamed) <- "Allele_number_1"
-    writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_contig_first, format = "fasta", width = 20000)
+    writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_consensus_first, format = "fasta", width = 20000)
     if (pair_strands_flag != 1) {
+      num_threads_medaka <- min(num_threads, 8)
+      paf_file_first <- gsub(pattern = "\\.fastq$", replacement = ".paf", x = first_allele_reads_fq)
+      racon_consensus_first <- paste0(sample_dir, "/", sample_name, "_racon_first_allele.fasta")
+      cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
+      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_first, " ", first_allele_reads_fq, " > ", paf_file_first))
+      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", first_allele_reads_fq, " ", paf_file_first, " ", draft_consensus_first, " > ", racon_consensus_first))
       cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
-      system(paste0(MEDAKA, "_consensus -i ", first_allele_reads_fq, " -d ", draft_contig_first, " -m ", medaka_model, " -t ", num_threads, " -o ", sample_dir, "/medaka_first_allele"))
+      system(paste0(MEDAKA, "_consensus -i ", first_allele_reads_fq, " -d ", racon_consensus_first, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_first_allele"))
       system(paste0("cp ", sample_dir, "/medaka_first_allele/consensus.fasta ", first_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", first_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
     } else {
-      system(paste0(SEQTK, " trimfq ", draft_contig_first, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
+      system(paste0(SEQTK, " trimfq ", draft_consensus_first, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
     }
-    setwd(home_dir)
+    setwd(analysis_dir)
     system(paste0(TRF, " ", first_allele, " 2 7 7 80 10 50 500"))
     system(paste0(TRF, " ", first_allele, " 2 3 5 80 10 14 500"))
     system(paste0(TRF, " ", first_allele, " 2 500 500 80 10 50 500"))
-    default_trf_par_files <-  list.files(path = home_dir, pattern = "\\.2\\.7\\.7\\.80\\.10\\.50\\.500", full.names = TRUE)
-    stringent_trf_par_files <- list.files(path = home_dir, pattern = "\\.2\\.500\\.500\\.80\\.10\\.50\\.500", full.names = TRUE)
-    lenient_trf_par_files <- list.files(path = home_dir, pattern = "\\.2\\.3\\.5\\.80\\.10\\.14\\.500", full.names = TRUE)
+    default_trf_par_files <-  list.files(path = analysis_dir, pattern = "\\.2\\.7\\.7\\.80\\.10\\.50\\.500", full.names = TRUE)
+    stringent_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.500\\.500\\.80\\.10\\.50\\.500", full.names = TRUE)
+    lenient_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.3\\.5\\.80\\.10\\.14\\.500", full.names = TRUE)
     system(paste0("mv ", paste0(lenient_trf_par_files, collapse = " "), " ", sample_dir))
     system(paste0("mv ", paste0(stringent_trf_par_files, collapse = " "), " ", sample_dir))
   }
   #create consensus sequence for Allele #2
-  target_reads_contig <- TRC
+  target_reads_consensus <- TRC
   
   if (skip_second_allele_flag == 1) {
     cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_second), "%) from sample ", sample_name, " have been assigned to Allele #2; skipping"), sep = "\n")
     cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_second), "%) from sample ", sample_name, " have been assigned to Allele #2; skipping"),  file = logfile, sep = "\n", append = TRUE)
   } else {
-    if (num_reads_second_allele < target_reads_contig) {
-      target_reads_contig <- num_reads_second_allele
-      target_reads_polishing <- num_reads_second_allele
+    if (num_reads_second_allele < target_reads_consensus) {
+      target_reads_consensus <- num_reads_second_allele
       cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"), sep = "\n")
       cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"),  file = logfile, sep = "\n", append = TRUE)
     } 
-    plurality_value <- 0.15*target_reads_contig
-    draft_contig_second_tmp1 <- paste0(sample_dir, "/", sample_name, "_non_polished.contig_second_tmp1.fasta")
-    draft_contig_second_tmp2 <- paste0(sample_dir, "/", sample_name, "_non_polished.contig_second_tmp2.fasta")
-    draft_contig_second <- paste0(sample_dir, "/", sample_name, "_non_polished.contig_second.fasta")
-    second_allele_untrimmed <- paste0(home_dir, "/", sample_name, "/", sample_name, "_second_allele_untrimmed.fasta")
-    second_allele <- paste0(home_dir, "/", sample_name, "_second_allele.fasta")
+    plurality_value <- 0.15*target_reads_consensus
+    draft_consensus_second_tmp1 <- paste0(sample_dir, "/", sample_name, "_draft_second_allele_tmp1.fasta")
+    draft_consensus_second_tmp2 <- paste0(sample_dir, "/", sample_name, "_draft_second_allele_tmp2.fasta")
+    draft_consensus_second <- paste0(sample_dir, "/", sample_name, "_draft_second_allele.fasta")
+    second_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_draft_second_allele_untrimmed.fasta")
+    second_allele <- paste0(analysis_dir, "/", sample_name, "_second_allele.fasta")
     sequences <- readDNAStringSet(fasta_files[i], "fasta")
     ws <- width(sequences)
     amplicon_length <- ceiling(mean(ws))
-    draft_reads_fq_second <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_contig, "_reads_second.fastq")
-    draft_reads_fa_second <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_contig, "_reads_second.fasta")
+    draft_reads_fq_second <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_second_allele.fastq")
+    draft_reads_fa_second <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_second_allele.fasta")
     seed <- 1
-    system(paste0(SEQTK, " sample -s ", seed , " ", second_allele_reads_fq, " ",  target_reads_contig, " > ", draft_reads_fq_second))
+    system(paste0(SEQTK, " sample -s ", seed , " ", second_allele_reads_fq, " ",  target_reads_consensus, " > ", draft_reads_fq_second))
     system(paste0(SEQTK, " seq -A ", draft_reads_fq_second, " > ", draft_reads_fa_second))
     mfa_file_second <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa_second)
     #system(paste0(MAFFT, " --auto --thread ", num_threads, " --threadit 0 --adjustdirectionaccurately ", draft_reads_fa_second, " > ", mfa_file_second)) #threadit 0 if you need reproducible results
@@ -513,29 +574,35 @@ for (i in 1:length(fasta_files)) {
     } else {
       system(paste0(MAFFT, "-linsi --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa_second, " > ", mfa_file_second))
     }
-    system(paste0(CONS, " -sequence ", mfa_file_second, " -plurality ", plurality_value, " -outseq ", draft_contig_second_tmp1))
-    system(paste0("sed 's/[nN]//g' ", draft_contig_second_tmp1, " > ", draft_contig_second_tmp2))
-    DNAStringSet_obj <- readDNAStringSet(draft_contig_second_tmp2, "fasta")
+    system(paste0(CONS, " -sequence ", mfa_file_second, " -plurality ", plurality_value, " -outseq ", draft_consensus_second_tmp1))
+    system(paste0("sed 's/[nN]//g' ", draft_consensus_second_tmp1, " > ", draft_consensus_second_tmp2))
+    DNAStringSet_obj <- readDNAStringSet(draft_consensus_second_tmp2, "fasta")
     DNAStringSet_obj_renamed <- DNAStringSet_obj
     original_headers <- names(DNAStringSet_obj)
     sequences <- seq(DNAStringSet_obj)
     names(DNAStringSet_obj_renamed) <- "Allele_number_2"
-    writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_contig_second, format = "fasta", width = 20000)
+    writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_consensus_second, format = "fasta", width = 20000)
     if (pair_strands_flag != 1) {
+      num_threads_medaka <- min(num_threads, 8)
+      paf_file_second <- gsub(pattern = "\\.fastq$", replacement = ".paf", x = second_allele_reads_fq)
+      racon_consensus_second <- paste0(sample_dir, "/", sample_name, "_racon_second_allele.fasta")
+      cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
+      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_second, " ", second_allele_reads_fq, " > ", paf_file_second))
+      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", second_allele_reads_fq, " ", paf_file_second, " ", draft_consensus_second, " > ", racon_consensus_second))
       cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
-      system(paste0(MEDAKA, "_consensus -i ", second_allele_reads_fq, " -d ", draft_contig_second, " -m ", medaka_model, " -t ", num_threads, " -o ", sample_dir, "/medaka_second_allele"))
+      system(paste0(MEDAKA, "_consensus -i ", second_allele_reads_fq, " -d ", racon_consensus_second, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_second_allele"))
       system(paste0("cp ", sample_dir, "/medaka_second_allele/consensus.fasta ", second_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", second_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
     } else {
-      system(paste0(SEQTK, " trimfq ", draft_contig_second, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
+      system(paste0(SEQTK, " trimfq ", draft_consensus_second, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
     }
-    setwd(home_dir)
+    setwd(analysis_dir)
     system(paste0(TRF, " ", second_allele, " 2 7 7 80 10 50 500"))
     system(paste0(TRF, " ", second_allele, " 2 3 5 80 10 14 500"))
     system(paste0(TRF, " ", second_allele, " 2 500 500 80 10 50 500"))
-    default_trf_par_files <-  list.files(path = home_dir, pattern = "\\.2\\.7\\.7\\.80\\.10\\.50\\.500", full.names = TRUE)
-    stringent_trf_par_files <- list.files(path = home_dir, pattern = "\\.2\\.500\\.500\\.80\\.10\\.50\\.500", full.names = TRUE)
-    lenient_trf_par_files <- list.files(path = home_dir, pattern = "\\.2\\.3\\.5\\.80\\.10\\.14\\.500", full.names = TRUE)
+    default_trf_par_files <-  list.files(path = analysis_dir, pattern = "\\.2\\.7\\.7\\.80\\.10\\.50\\.500", full.names = TRUE)
+    stringent_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.500\\.500\\.80\\.10\\.50\\.500", full.names = TRUE)
+    lenient_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.3\\.5\\.80\\.10\\.14\\.500", full.names = TRUE)
     system(paste0("mv ", paste0(lenient_trf_par_files, collapse = " "), " ", sample_dir))
     system(paste0("mv ", paste0(stringent_trf_par_files, collapse = " "), " ", sample_dir))
   }

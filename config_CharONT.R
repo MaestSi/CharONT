@@ -70,14 +70,14 @@ suppressMessages(library(Biostrings))
 suppressMessages(library(stats))
 #path to CharONT.R
 CharONT <- paste0(PIPELINE_DIR, "/CharONT.R")
-#path to DecONT.sh
-DECONT <- paste0(PIPELINE_DIR, "/decONT.sh")
 #path to subsample fast5
 subsample_fast5 <- paste0(PIPELINE_DIR, "/subsample_fast5.sh")
 #MAFFT
 MAFFT <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/mafft")
 #VSEARCH
 VSEARCH <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/vsearch")
+#RACON
+RACON <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/racon")
 #MEDAKA
 MEDAKA <- paste0(MINICONDA_DIR, "/envs/CharONT_env/bin/medaka")
 #EMBOSS cons
