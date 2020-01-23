@@ -138,7 +138,7 @@ for (i in 1:length(fasta_files)) {
   for (j in 1:length(clusters_vsearch)) {
     cluster_match <- system(paste0("cat ", clusters_vsearch[j], " | grep \"", id_centroid, "\""), intern = TRUE)
     if (length(cluster_match) > 0) {
-      mac_file <- clusters_vsearch[i]
+      mac_file <- clusters_vsearch[j]
       system(paste0("cat ", mac_file, " | grep ", "\"",  "^>", "\"", "  | sed 's/^>//' | sed 's/;.*$//' > ", ids_mac_first_preliminary))
       system(paste0(SEQTK, " subseq ", fasta_files[i], " ", ids_mac_first_preliminary, " > ", mac_fa_first_preliminary))
       system(paste0(SEQTK, " subseq ", fastq_files[i], " ", ids_mac_first_preliminary, " > ", mac_fq_first_preliminary))
