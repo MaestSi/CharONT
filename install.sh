@@ -25,11 +25,12 @@ conda config --add channels anaconda
 conda config --add channels conda-forge
 conda config --add channels bioconda
 
-conda create -n CharONT_env emboss vsearch seqtk mafft minimap2 samtools medaka r bioconductor-biostrings trf NanoFilt bbmap pycoqc
+conda create -n CharONT_env emboss vsearch seqtk mafft minimap2 samtools medaka r bioconductor-biostrings trf NanoFilt bbmap pycoqc plotly tqdm
+#conda create -n pycoQC_env pycoqc
+#ln -s $MINICONDA_DIR"/envs/pycoQC_env/bin/pycoQC" $MINICONDA_DIR"/envs/CharONT_env/bin"
 
 source activate CharONT_env
 
-#gcc 4.8+ and cmake 3.2+ are prerequisites
 cd $MINICONDA_DIR"/envs/CharONT_env"
 git clone --recursive https://github.com/lbcb-sci/racon.git racon
 cd racon
