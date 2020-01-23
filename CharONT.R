@@ -350,13 +350,6 @@ for (i in 1:length(fasta_files)) {
     score_no_outliers <- score[!score %in% outliers_score]
     num_outliers <- length(score) - length(score_no_outliers)
     if (num_outliers > 0) {
-      cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"), sep = "\n")
-      cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"),  file = logfile, sep = "\n", append = TRUE)
-      outliers_readnames <- reads_names[ind_outliers]
-      outliers_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_outliers.txt")
-      write.table(x=outliers_readnames, quote = FALSE, file = outliers_reads_names, row.names = FALSE, col.names = FALSE)
-      outliers_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_outliers.fastq")
-      system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
       reads_names_no_outliers <- reads_names[-ind_outliers]
     } else {
       reads_names_no_outliers <- reads_names
