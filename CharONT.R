@@ -99,12 +99,14 @@ if (length(fasta_files) > 0) {
 
 available_medaka_models <- system("medaka tools list_models", intern = TRUE)
 
-if (grep(pattern = medaka_model, x = available_medaka_models) == 1) {
+if (grep(pattern = medaka_model, x = available_medaka_models)[1] == 1) {
   cat(text = paste0("Medaka model: ", medaka_model), sep = "\n")
   cat(text = paste0("Medaka model: ", medaka_model), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
 } else {
   cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g344 was selected"), sep = "\n")
   cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g344 was selected"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)  
   medaka_model <- "r941_min_high_g344"
 }
 
