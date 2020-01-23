@@ -40,7 +40,7 @@ conda deactivate
 
 conda create -n pycoQC_env pip
 source activate pycoQC_env
-pip install pycoQC
+python -m pip install pycoQC
 ln -s $MINICONDA_DIR"/envs/pycoQC_env/bin/pycoQC" $MINICONDA_DIR"/envs/CharONT_env/bin"
 
 cd $PIPELINE_DIR
