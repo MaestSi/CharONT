@@ -135,8 +135,8 @@ for (i in 1:length(fasta_files)) {
   centroid_mac <- system(paste0("head -n1 ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta"), intern = TRUE)
   id_centroid <-  system(paste0("echo ", "\"", centroid_mac, "\"", " | sed 's/centroid=//g' | sed 's/;seqs.*$//g'"), intern = TRUE)
   clusters_vsearch <- list.files(path = vsearch_clustering_dir, pattern = paste0(sample_name, "_cluster"), full.names = TRUE)
-  for (i in 1:length(clusters_vsearch)) {
-    cluster_match <- system(paste0("cat ", clusters_vsearch[i], " | grep \"", id_centroid, "\""), intern = TRUE)
+  for (j in 1:length(clusters_vsearch)) {
+    cluster_match <- system(paste0("cat ", clusters_vsearch[j], " | grep \"", id_centroid, "\""), intern = TRUE)
     if (length(cluster_match) > 0) {
       mac_file <- clusters_vsearch[i]
       system(paste0("cat ", mac_file, " | grep ", "\"",  "^>", "\"", "  | sed 's/^>//' | sed 's/;.*$//' > ", ids_mac_first_preliminary))
