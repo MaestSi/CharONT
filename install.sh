@@ -38,7 +38,7 @@ make
 ln -s $MINICONDA_DIR"/envs/CharONT_env/racon/build/bin/racon" $MINICONDA_DIR"/envs/CharONT_env/bin"
 conda deactivate
 
-conda create -n pycoQC_env
+conda create -n pycoQC_env pip
 source activate pycoQC_env
 pip install pycoQC
 ln -s $MINICONDA_DIR"/envs/pycoQC_env/bin/pycoQC" $MINICONDA_DIR"/envs/CharONT_env/bin"
