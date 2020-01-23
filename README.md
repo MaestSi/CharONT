@@ -46,7 +46,7 @@ chmod 755 *
 ./install.sh
 ```
 
-A conda environment named _CharONT_env_ is created, where emboss, vsearch, seqtk, mafft, minimap2, samtools, racon, medaka, NanoFilt, Tandem Repeat Finder, BBMap, pycoQC and R with package Biostrings are installed.
+A conda environment named _CharONT\_env_ is created, where emboss, vsearch, seqtk, mafft, minimap2, samtools, racon, medaka, NanoFilt, Tandem Repeat Finder, BBMap and R with package Biostrings are installed. Another conda environment named _pycoQC\_env_ is created, where pycoQC is installed. 
 Then, you can open the **config_CharONT.R** file with a text editor and set the variables _PIPELINE_DIR_ and _MINICONDA_DIR_ to the value suggested by the installation step.
 
 ## Overview
