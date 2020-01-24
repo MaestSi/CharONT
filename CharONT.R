@@ -97,9 +97,9 @@ if (length(fasta_files) > 0) {
   cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
 }
 
-available_medaka_models <- system("medaka tools list_models", intern = TRUE)
+available_medaka_models <- system("medaka tools list_models", intern = TRUE)[1]
 
-if (grep(pattern = medaka_model, x = available_medaka_models)[1] == 1) {
+if (length(grep(pattern = medaka_model, x = available_medaka_models)) > 0) {
   cat(text = paste0("Medaka model: ", medaka_model), sep = "\n")
   cat(text = paste0("Medaka model: ", medaka_model), file = logfile, sep = "\n", append = TRUE)
   cat(text = "\n", file = logfile, append = TRUE)
