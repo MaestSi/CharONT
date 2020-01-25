@@ -290,51 +290,6 @@ for (i in 1:length(fasta_files)) {
           score[k] <- ins_block_lengths[k] - del_block_lengths[k] + max_ins_block_lengths[k]
         }
     }
-    #sc_thr <- 0 to consider reads carrying a big soft-clipped portion different to reads with big indel (sc_flanking_correction <- 1)
-    #otherwise, if there is at least one read carrying an indel as big as sc_thr*100% the longest soft-clipped portion, soft-clipped portions' lengths are corrected to account for flanking regions length
-    #sc_thr <- 0
-    # #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
-    # if (mean(max_ins_block_lengths) > mean(max_del_block_lengths)) {
-    #   #soft-clipped regions also include flanking regions -> apply correction
-    #   if (max(max_clipping_block_lengths) > 0) {
-    #     #if there is at least one read carrying an insertion as big as sc_thr*100% the longest soft-clipped portion, evaluate sc_flanking_correction to correct for flanking region length
-    #     if (max(max_ins_block_lengths)/max(max_clipping_block_lengths) > sc_thr) {
-    #       sc_flanking_correction <- max(max_ins_block_lengths)/mean(max_clipping_block_lengths[which(max_clipping_block_lengths != 0)])
-    #     } else {
-    #       sc_flanking_correction <- 1
-    #     }
-    #   } else {
-    #     sc_flanking_correction <- 1
-    #   }
-    #   #if read k carries bigger insertion than deletion it probably comes from allele #2 (score >> 0)
-    #   if (max(max_ins_block_lengths[k], sc_flanking_correction*max_clipping_block_lengths[k]) > max_del_block_lengths[k]) {
-    #     score[k] <- sc_flanking_correction*clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] + max(sc_flanking_correction*max_clipping_block_lengths[k], max_ins_block_lengths[k])
-    #     #if read k carries bigger deletion than insertion it probably comes from allele #1 (score ~ 0)
-    #   } else {
-    #     score[k] <- sc_flanking_correction*clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] - max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
-    #   }
-    #   #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
-    # } else {
-    #   #soft-clipped regions also include flanking regions -> apply correction
-    #   if (max(max_clipping_block_lengths) > 0) {
-    #     #if there is at least one read carrying a deletion as big as sc_thr*100% the longest soft-clipped portion, evaluate sc_flanking_correction to correct for flanking region length
-    #     if (max(max_del_block_lengths)/max(max_clipping_block_lengths) > sc_thr) {
-    #       sc_flanking_correction <- max(max_del_block_lengths)/mean(max_clipping_block_lengths[which(max_clipping_block_lengths != 0)])
-    #     } else {
-    #       sc_flanking_correction <- 1
-    #     }
-    #   } else {
-    #     sc_flanking_correction <- 1
-    #   }
-    #   #if read k carries bigger deletion than insertion, it probably comes from allele #2 (score << 0)
-    #   if (max(max_del_block_lengths[k], max_clipping_block_lengths[k]) > max_ins_block_lengths[k]) {
-    #     score[k] <- ins_block_lengths[k] - sc_flanking_correction*clipping_block_lengths[k] - del_block_lengths[k] - max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
-    #     #if read k carries bigger insertion than deletion it probably comes from allele #1 (score ~ 0)
-    #   } else {
-    #     score[k] <- ins_block_lengths[k] - sc_flanking_correction*clipping_block_lengths[k] - del_block_lengths[k] + max(sc_flanking_correction*max_clipping_block_lengths[k], max_del_block_lengths[k])
-    #   }
-    # }
-    
     if (length(which(is.na(score) == TRUE)) > 0) {
       ind_NA_score <- which(is.na(score) == TRUE)
       score[ind_NA_score] <- 0
@@ -369,16 +324,40 @@ for (i in 1:length(fasta_files)) {
     skip_second_allele_flag <- 1
     num_reads_second_allele <- 0
     allelic_ratio_perc_second <- 0
+    score_thr <- min(score)
     #cluster reads into 2 groups (ref/alt allele) based on length of the longest portion non matching the reference (first allele)
   } else {
-    clusters <- kmeans(score, 2, iter.max = 1000, nstart = 5)
-    cluster_reference_id <- which(clusters$centers == min(clusters$centers))[1]
-    cluster_alternative_id <- which(clusters$centers == max(clusters$centers))[1]
+    #remove outliers that might negatively affect clustering
+    preclustering_outliers_score <- boxplot.stats(score, coef = IQR_outliers_coef)$out
+    preclustering_score_no_outliers <- score[!score %in% preclustering_outliers_score]
+    #do clustering
+    clusters <- kmeans(preclustering_score_no_outliers, 2, iter.max = 1000, nstart = 5)
+    cluster_reference_id <- which(abs(clusters$centers) == min(abs(clusters$centers)))[1]
     cluster_reference_index <- which(clusters$cluster == cluster_reference_id)
+    #check if preclustering outliers should be assigned to reference or alternative cluster
+    outliers_centers_sorted <- sort(c(preclustering_outliers_score, clusters$centers))
+    ind_center_ref <- which(abs(outliers_centers_sorted) == min(abs(clusters$centers)))
+    ind_center_alt <- which(abs(outliers_centers_sorted) == max(abs(clusters$centers)))
+    #determine which center is the center of reference cluster, and assign outliers to one of the clusters
+    if (ind_center_ref < ind_center_alt) {
+      preclustering_outliers_reference_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[1:(ind_center_ref - 1)])
+      preclustering_outliers_alternative_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[(ind_center_ref + 2):length(outliers_centers_sorted)])
+    } else {
+      preclustering_outliers_alternative_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[1:(ind_center_alt - 1)])
+      preclustering_outliers_reference_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[(ind_center_alt + 2):length(outliers_centers_sorted)])
+    }
+    ind_outliers_reference_preclustering <- which(sort(score) %in% preclustering_outliers_reference_score)
+    ind_outliers_alternative_preclustering <- which(sort(score) %in% preclustering_outliers_alternative_score)
+    cluster_reference_score <- c(preclustering_score_no_outliers[cluster_reference_index], preclustering_outliers_reference_score)
+    cluster_alternative_id <- which(abs(clusters$centers) == max(abs(clusters$centers)))[1]
     cluster_alternative_index <- which(clusters$cluster == cluster_alternative_id)
-    cluster_reference_score <- score[cluster_reference_index]
-    cluster_alternative_score <- score[cluster_alternative_index]
-    #remove outliers which may be associated with somatic mutations
+    cluster_alternative_score <- c(preclustering_score_no_outliers[cluster_alternative_index], preclustering_outliers_alternative_score)
+    if (ind_center_ref < ind_center_alt) {
+      score_thr <- (max(cluster_reference_score) + min(cluster_alternative_score))/2
+    } else {
+      score_thr <- (max(cluster_alternative_score) +  min(cluster_reference_score))/2
+    }
+    #remove outliers from reference cluster which may be associated with somatic mutations
     outliers_reference_score <- boxplot.stats(cluster_reference_score, coef = IQR_outliers_coef)$out
     ind_outliers_reference <- which(sort(cluster_reference_score) %in% outliers_reference_score)
     score_reference_no_outliers <- cluster_reference_score[!cluster_reference_score %in% outliers_reference_score]
@@ -390,7 +369,8 @@ for (i in 1:length(fasta_files)) {
       cluster_reference_index_no_outliers <- cluster_reference_index
       cluster_reference_readnames <- reads_names[cluster_reference_index]
     }
-    outliers_alternative_score <- boxplot.stats(cluster_alternative_score, coef = 2)$out
+    #remove outliers from alternative cluster which may be associated with somatic mutations
+    outliers_alternative_score <- boxplot.stats(cluster_alternative_score, coef = IQR_outliers_coef)$out
     ind_outliers_alternative <- which(sort(cluster_alternative_score) %in% outliers_alternative_score)
     score_alternative_no_outliers <- cluster_alternative_score[!cluster_alternative_score %in% outliers_alternative_score]
     num_outliers_alternative <- length(cluster_alternative_score) - length(score_alternative_no_outliers)
@@ -422,16 +402,17 @@ for (i in 1:length(fasta_files)) {
     outliers_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_outliers.fastq")
     system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
   }
-  png(paste0(sample_dir, "/", sample_name, "_per_read_score.png"))
-  plot(1:length(score), sort(score), xlab = "Reads", ylab = "Score (bp)", main = "Per-read score")
-  if (num_outliers_reference > 0) {
-    lines(ind_outliers_reference, sort(outliers_reference_score), col = "red", type = "p")
-  }
-  if (num_outliers_alternative > 0) {
-    lines((length(cluster_reference_score) + ind_outliers_alternative), sort(outliers_alternative_score), col = "red", type = "p")
+  num_outliers <- num_outliers_reference + num_outliers_alternative
+  png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
+  plot(1:length(score), sort(score), xlab = "Reads", ylab = "Score (bp)", main = "Reads scores")
+  abline(h = score_thr, col = "blue", lty = 2, lwd = 3)
+  if(num_outliers > 0) {
+    outliers_score <- sort(c(outliers_reference_score, outliers_alternative_score))
+    ind_outliers <- which(sort(score) %in% outliers_score)
+    lines(ind_outliers, outliers_score, col = "red", type = "p")
   }
   dev.off()
-  num_outliers <- num_outliers_reference + num_outliers_alternative
+  
   if (num_outliers > 0) {
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"), sep = "\n")
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"),  file = logfile, sep = "\n", append = TRUE)
