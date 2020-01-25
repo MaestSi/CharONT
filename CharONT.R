@@ -76,6 +76,8 @@ if (!exists("fast_alignment_flag")) {
 
 #target reads for creating consensus
 TRC <- 200
+#target reads for polishing
+TRP <- 200
 
 logfile <- paste0(analysis_dir, "/logfile.txt")
 
@@ -111,6 +113,7 @@ if (length(grep(pattern = medaka_model, x = available_medaka_models)) > 0) {
 }
 
 target_reads_consensus <- TRC
+target_reads_polishing <- TRP
 THR <- 0.85
 plurality_value <- 0.15*target_reads_consensus
 max_num_reads_clustering <- 500
@@ -480,6 +483,7 @@ for (i in 1:length(fasta_files)) {
   } else {
     if (num_reads_first_allele < target_reads_consensus) {
       target_reads_consensus <- num_reads_first_allele
+      target_reads_polishing <- num_reads_first_allele
       cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"), sep = "\n")
       cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"),  file = logfile, sep = "\n", append = TRUE)
     } 
@@ -516,11 +520,14 @@ for (i in 1:length(fasta_files)) {
       num_threads_medaka <- min(num_threads, 8)
       paf_file_first <- gsub(pattern = "\\.fastq$", replacement = ".paf", x = first_allele_reads_fq)
       racon_consensus_first <- paste0(sample_dir, "/", sample_name, "_racon_first_allele.fasta")
+      polishing_reads_fq_first <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_first_allele.fastq")
+      seed <- 2
+      system(paste0(SEQTK, " sample -s ", seed , " ", first_allele_reads_fq, " ",  target_reads_polishing, " > ", polishing_reads_fq_first))
       cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
-      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_first, " ", first_allele_reads_fq, " > ", paf_file_first))
-      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", first_allele_reads_fq, " ", paf_file_first, " ", draft_consensus_first, " > ", racon_consensus_first))
+      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_first, " ", polishing_reads_fq_first, " > ", paf_file_first))
+      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq_first, " ", paf_file_first, " ", draft_consensus_first, " > ", racon_consensus_first))
       cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
-      system(paste0(MEDAKA, "_consensus -i ", first_allele_reads_fq, " -d ", racon_consensus_first, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_first_allele"))
+      system(paste0(MEDAKA, "_consensus -i ", polishing_reads_fq_first, " -d ", racon_consensus_first, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_first_allele"))
       system(paste0("cp ", sample_dir, "/medaka_first_allele/consensus.fasta ", first_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", first_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
     } else {
@@ -538,13 +545,15 @@ for (i in 1:length(fasta_files)) {
   }
   #create consensus sequence for Allele #2
   target_reads_consensus <- TRC
-  
+  target_reads_polishing <- TRP  
+
   if (skip_second_allele_flag == 1) {
     cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_second), "%) from sample ", sample_name, " have been assigned to Allele #2; skipping"), sep = "\n")
     cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_second), "%) from sample ", sample_name, " have been assigned to Allele #2; skipping"),  file = logfile, sep = "\n", append = TRUE)
   } else {
     if (num_reads_second_allele < target_reads_consensus) {
       target_reads_consensus <- num_reads_second_allele
+      target_reads_polishing <- num_reads_second_allele
       cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"), sep = "\n")
       cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"),  file = logfile, sep = "\n", append = TRUE)
     } 
@@ -581,11 +590,14 @@ for (i in 1:length(fasta_files)) {
       num_threads_medaka <- min(num_threads, 8)
       paf_file_second <- gsub(pattern = "\\.fastq$", replacement = ".paf", x = second_allele_reads_fq)
       racon_consensus_second <- paste0(sample_dir, "/", sample_name, "_racon_second_allele.fasta")
+      polishing_reads_fq_second <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_second_allele.fastq")
+      seed <- 2
+      system(paste0(SEQTK, " sample -s ", seed , " ", second_allele_reads_fq, " ",  target_reads_polishing, " > ", polishing_reads_fq_second))
       cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
-      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_second, " ", second_allele_reads_fq, " > ", paf_file_second))
-      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", second_allele_reads_fq, " ", paf_file_second, " ", draft_consensus_second, " > ", racon_consensus_second))
+      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_second, " ", polishing_reads_fq_second, " > ", paf_file_second))
+      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq_second, " ", paf_file_second, " ", draft_consensus_second, " > ", racon_consensus_second))
       cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
-      system(paste0(MEDAKA, "_consensus -i ", second_allele_reads_fq, " -d ", racon_consensus_second, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_second_allele"))
+      system(paste0(MEDAKA, "_consensus -i ", polishing_reads_fq_second, " -d ", racon_consensus_second, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_second_allele"))
       system(paste0("cp ", sample_dir, "/medaka_second_allele/consensus.fasta ", second_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", second_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
     } else {
