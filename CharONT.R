@@ -409,7 +409,7 @@ for (i in 1:length(fasta_files)) {
   if(num_outliers > 0) {
     outliers_score <- sort(c(outliers_reference_score, outliers_alternative_score))
     ind_outliers <- which(sort(score) %in% outliers_score)
-    lines(ind_outliers, outliers_score, col = "red", type = "p")
+    lines(ind_outliers, sort(score)[ind_outliers], col = "red", type = "p")
   }
   dev.off()
   
