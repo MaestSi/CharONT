@@ -268,26 +268,26 @@ for (i in 1:length(fasta_files)) {
       max_clipping_block_lengths <- c(max_clipping_block_lengths, 0)
     }
   }
-  #linear model with double weigth for longest indel
+  #longest indel model
   #cycle over reads
   for (k in 1:length(cigar_strings)) {
     #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
     if (mean(max_ins_block_lengths) > mean(max_del_block_lengths)) {
       #if read k carries bigger insertion than deletion it probably comes from allele #2 (score >> 0)
       if (max(max_ins_block_lengths[k], max_clipping_block_lengths[k]) > max_del_block_lengths[k]) {
-        score[k] <- clipping_block_lengths[k] + ins_block_lengths[k] - del_block_lengths[k] + max(max_clipping_block_lengths[k], max_ins_block_lengths[k])
+        score[k] <- max(max_clipping_block_lengths[k], max_ins_block_lengths[k])
       #if read k carries bigger deletion than insertion it probably comes from allele #1 (score ~ 0)
       } else {
-        score[k] <- ins_block_lengths[k] - del_block_lengths[k] - max_del_block_lengths[k]
+        score[k] <- - max_del_block_lengths[k]
       }
     #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
     } else {
         #if read k carries bigger deletion than insertion, it probably comes from allele #2 (score << 0)
         if (max(max_del_block_lengths[k], max_clipping_block_lengths[k]) > max_ins_block_lengths[k]) {
-          score[k] <- ins_block_lengths[k] - clipping_block_lengths[k] - del_block_lengths[k] - max(max_clipping_block_lengths[k], max_del_block_lengths[k])
+          score[k] <- - max(clipping_block_lengths[k], del_block_lengths[k])
           #if read k carries bigger insertion than deletion it probably comes from allele #1 (score ~ 0)
         } else {
-          score[k] <- ins_block_lengths[k] - del_block_lengths[k] + max_ins_block_lengths[k]
+          score[k] <- max_ins_block_lengths[k]
         }
     }
     if (length(which(is.na(score) == TRUE)) > 0) {
