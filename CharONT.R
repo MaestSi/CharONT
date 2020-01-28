@@ -199,7 +199,7 @@ for (i in 1:length(fasta_files)) {
   max_ins_block_lengths <- c()
   clipping_block_lengths <- c()
   max_clipping_block_lengths <- c()
-  min_clipped_len <- 50
+  min_clipped_len <- 500
   
   #cycle over reads and extract for each read the longest portion non matching the reference
   for (k in 1:length(cigar_strings)) {
@@ -284,7 +284,7 @@ for (i in 1:length(fasta_files)) {
     } else {
         #if read k carries bigger deletion than insertion, it probably comes from allele #2 (score << 0)
         if (max(max_del_block_lengths[k], max_clipping_block_lengths[k]) > max_ins_block_lengths[k]) {
-          score[k] <- - max(clipping_block_lengths[k], del_block_lengths[k])
+          score[k] <- - max(max_clipping_block_lengths[k], max_del_block_lengths[k])
           #if read k carries bigger insertion than deletion it probably comes from allele #1 (score ~ 0)
         } else {
           score[k] <- max_ins_block_lengths[k]
