@@ -412,8 +412,12 @@ for (i in 1:length(fasta_files)) {
     lines(ind_outliers, sort(score)[ind_outliers], col = "red", type = "p")
   }
   dev.off()
-  
   if (num_outliers > 0) {
+    png(paste0(sample_dir, "/", sample_name, "_reads_scores_no_outliers.png"))
+    score_no_outliers <- sort(score)[-ind_outliers]
+    plot(1:length(score_no_outliers), score_no_outliers, xlab = "Reads", ylab = "Score (bp)", main = "Reads scores")
+    abline(h = score_thr, col = "blue", lty = 2, lwd = 3)
+    dev.off()
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"), sep = "\n")
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"),  file = logfile, sep = "\n", append = TRUE)
     ind_outliers <- which(score %in% c(outliers_reference_score, outliers_alternative_score))
