@@ -21,6 +21,7 @@
 FASTQ_READS=$1
 PRIMER_SEQ_ONE=$2
 PRIMER_SEQ_TWO=$3
+THR=$4
 
 MSA=msa.sh
 CUTPRIMERS=cutprimers.sh
@@ -34,7 +35,7 @@ sam_file_two=$working_dir"/"$sample_name"_in_silico_pcr_two.sam"
 trimmed_reads_fq=$working_dir"/BC01.fastq"
 trimmed_reads_fa=$working_dir"/BC01.fasta"
 
-$MSA in=$reads_full out=$sam_file_one literal=$PRIMER_SEQ_ONE qin=33 cutoff=0.75
-$MSA in=$reads_full out=$sam_file_two literal=$PRIMER_SEQ_TWO qin=33 cutoff=0.75
+$MSA in=$reads_full out=$sam_file_one literal=$PRIMER_SEQ_ONE qin=33 cutoff=$THR
+$MSA in=$reads_full out=$sam_file_two literal=$PRIMER_SEQ_TWO qin=33 cutoff=$THR
 $CUTPRIMERS in=$reads_full out=$trimmed_reads_fq sam1=$sam_file_one sam2=$sam_file_two qin=33 fake=f include=t fixjunk
 $SEQTK seq -A $trimmed_reads_fq > $trimmed_reads_fa

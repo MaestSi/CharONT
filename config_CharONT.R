@@ -40,6 +40,8 @@ num_threads <- 8
 primers_length <- 25
 #do_in_silico_pcr <- 1 in case you are not expecting PCR-like amplicons and want to extract on-target trimmed reads; otherwise, set do_insilico_pcr <- 0
 do_in_silico_pcr <- 0
+#pcr_id_thr is the minimum identity threshold that in-silico primers need for annealing
+pcr_id_thr <- 0.8
 #if do_in_silico_pcr <- 1, extract portion of reads between sequences pcr_silico_primer_one and pcr_silico_primer_two, pcr_silico_primer sequences included
 pcr_silico_primer_one <- "sequence_of_interest"
 pcr_silico_primer_two <- "sequence_of_interest"

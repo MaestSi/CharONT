@@ -55,6 +55,10 @@ if (!exists("do_in_silico_pcr")) {
   do_in_silico_pcr <- 0
 }
 
+if (!exists("pcr_id_thr")) {
+  pcr_id_thr <- 0.8
+}
+
 if (do_subsampling_flag == 1) {
   #d2 is the directory which is going to include processed reads
   d2 <- paste0(dirname(d1_tmp), "/", basename(d1_tmp), "_", num_fast5_files, "_subsampled_fast5_files_analysis")
@@ -274,10 +278,10 @@ for (i in 1:length(demu_files)) {
       in_silico_pcr_sam_two <- paste0(d2_preprocessing, "/BC", BC_val_curr, "_pcr_primer_two.sam")
       cat(text = paste0("Looking for pcr_silico_primer_one for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
       cat(text = paste0("Looking for pcr_silico_primer_one for sample BC", BC_val_curr), sep = "\n")
-      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_one, " literal=", pcr_silico_primer_one, " qin=33 cutoff=0.75"))
+      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_one, " literal=", pcr_silico_primer_one, " qin=33 cutoff=", pcr_id_thr))
       cat(text = paste0("Looking for pcr_silico_primer_two for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
       cat(text = paste0("Looking for pcr_silico_primer_two for sample BC", BC_val_curr), sep = "\n")
-      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_two, " literal=", pcr_silico_primer_two, " qin=33 cutoff=0.75"))
+      system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_two, " literal=", pcr_silico_primer_two, " qin=33 cutoff=", pcr_id_thr))
       cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
       cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), sep = "\n")
       system(paste0(CUTPRIMERS, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq out=", d3, "/BC", BC_val_curr, ".fastq sam1=", in_silico_pcr_sam_one, " sam2=", in_silico_pcr_sam_two, " qin=33 fake=f include=t fixjunk"))
