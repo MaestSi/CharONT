@@ -107,7 +107,7 @@ Outputs (saved in \<fast5_dir\>_analysis/preprocessing):
 
 **Extract_amplicons.sh**
 
-Usage: Extract_amplicons.sh \<fastq_reads\> \<primer_sequence_one\> \<primer_sequence_two\>
+Usage: Extract_amplicons.sh \<fastq_reads\> \<primer_sequence_one\> \<primer_sequence_two\> \<pcr_id_thr\>
 
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running.
 
@@ -115,6 +115,7 @@ Inputs:
 * \<fastq_reads\>: fastq file containing reads that need filtering and trimming to look like PCR amplicons
 * \<primer_sequence_one\>: sequence of first _in-silico_ PCR primer to look for, flanking the region of interest
 * \<primer_sequence_two\>: sequence of second _in-silico_ PCR primer to look for, flanking the region of interest
+* \<pcr_id_thr>: minimum identity threshold that in-silico primers need for annealing
 
 Outputs:
 * BC01.fast*: fastq and fasta files containing amplicon-like sequences extracted from \<fastq_reads\> based on \<primer_sequence_one\> and \<primer_sequence_two\> sequences
