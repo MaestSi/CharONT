@@ -364,7 +364,7 @@ for (i in 1:length(fasta_files)) {
     num_outliers_reference <- length(cluster_reference_score) - length(score_reference_no_outliers)
     if (num_outliers_reference > 0) {
       cluster_reference_index_no_outliers <- cluster_reference_index[-ind_outliers_reference]
-      cluster_reference_readnames <- (reads_names[cluster_reference_index])[-ind_outliers_reference]
+      cluster_reference_readnames <- reads_names[cluster_reference_index_no_outliers]
     } else {
       cluster_reference_index_no_outliers <- cluster_reference_index
       cluster_reference_readnames <- reads_names[cluster_reference_index]
@@ -376,7 +376,7 @@ for (i in 1:length(fasta_files)) {
     num_outliers_alternative <- length(cluster_alternative_score) - length(score_alternative_no_outliers)
     if (num_outliers_alternative > 0) {
       cluster_alternative_index_no_outliers <- cluster_alternative_index[-ind_outliers_alternative]
-      cluster_alternative_readnames <- (reads_names[cluster_alternative_index])[-ind_outliers_alternative]
+      cluster_alternative_readnames <- reads_names[cluster_alternative_index_no_outliers]
     } else {
       cluster_alternative_index_no_outliers <- cluster_alternative_index
       cluster_alternative_readnames <- reads_names[cluster_alternative_index]
