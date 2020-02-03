@@ -409,6 +409,9 @@ for (i in 1:length(fasta_files)) {
     system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
   }
   num_outliers <- num_outliers_reference + num_outliers_alternative
+  allelic_ratio_outliers <- num_outliers/num_reads_sample
+  allelic_ratio_perc_outliers <- allelic_ratio_outliers*100
+
   png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
   plot(1:length(score), sort(score), xlab = "Reads", ylab = "Score (bp)", main = "Reads scores")
   abline(h = score_thr, col = "blue", lty = 2, lwd = 3)
@@ -424,8 +427,8 @@ for (i in 1:length(fasta_files)) {
     plot(1:length(score_no_outliers), score_no_outliers, xlab = "Reads", ylab = "Score (bp)", main = "Reads scores")
     abline(h = score_thr, col = "blue", lty = 2, lwd = 3)
     dev.off()
-    cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"), sep = "\n")
-    cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads possibly associated with somatic mutations have been discarded"),  file = logfile, sep = "\n", append = TRUE)
+    cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads (", sprintf("%.2f", allelic_ratio_perc_outliers), "%), possibly associated with somatic mutations have been discarded"), sep = "\n")
+    cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads (", sprintf("%.2f", allelic_ratio_perc_outliers), "%), possibly associated with somatic mutations have been discarded"),  file = logfile, sep = "\n", append = TRUE)
     ind_outliers <- which(score %in% c(outliers_reference_score, outliers_alternative_score))
     outliers_readnames <- reads_names[ind_outliers]
     outliers_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_outliers.txt")
