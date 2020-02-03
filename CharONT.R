@@ -332,8 +332,6 @@ for (i in 1:length(fasta_files)) {
     preclustering_score_no_outliers <- score[!score %in% preclustering_outliers_score]
     #do clustering
     clusters <- kmeans(preclustering_score_no_outliers, 2, iter.max = 1000, nstart = 5)
-    cluster_reference_id <- which(abs(clusters$centers) == min(abs(clusters$centers)))[1]
-    cluster_reference_index <- which(clusters$cluster == cluster_reference_id)
     #check if preclustering outliers should be assigned to reference or alternative cluster
     outliers_centers_sorted <- sort(c(preclustering_outliers_score, clusters$centers))
     ind_center_ref <- which(abs(outliers_centers_sorted) == min(abs(clusters$centers)))
@@ -346,12 +344,20 @@ for (i in 1:length(fasta_files)) {
       preclustering_outliers_alternative_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[1:(ind_center_alt - 1)])
       preclustering_outliers_reference_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[(ind_center_alt + 2):length(outliers_centers_sorted)])
     }
-    ind_outliers_reference_preclustering <- which(sort(score) %in% preclustering_outliers_reference_score)
-    ind_outliers_alternative_preclustering <- which(sort(score) %in% preclustering_outliers_alternative_score)
-    cluster_reference_score <- c(preclustering_score_no_outliers[cluster_reference_index], preclustering_outliers_reference_score)
+    #find index of preclustering outliers
+    ind_outliers_reference_preclustering <- which(score %in% preclustering_outliers_reference_score)
+    ind_outliers_alternative_preclustering <- which(score %in% preclustering_outliers_alternative_score)
+    #find index and score of reference reads
+    cluster_reference_id <- which(abs(clusters$centers) == min(abs(clusters$centers)))[1]
+    cluster_reference_index_tmp <- which(clusters$cluster == cluster_reference_id)
+    cluster_reference_score <- c(preclustering_score_no_outliers[cluster_reference_index_tmp], preclustering_outliers_reference_score)
+    cluster_reference_index <- which(score %in% cluster_reference_score)
+    #find index and score of alternative reads
     cluster_alternative_id <- which(abs(clusters$centers) == max(abs(clusters$centers)))[1]
-    cluster_alternative_index <- which(clusters$cluster == cluster_alternative_id)
-    cluster_alternative_score <- c(preclustering_score_no_outliers[cluster_alternative_index], preclustering_outliers_alternative_score)
+    cluster_alternative_index_tmp <- which(clusters$cluster == cluster_alternative_id)
+    cluster_alternative_score <- c(preclustering_score_no_outliers[cluster_alternative_index_tmp], preclustering_outliers_alternative_score)
+    cluster_alternative_index <- which(score %in% cluster_alternative_score)
+    #calculate score threshold to split reads into two clusters 
     if (ind_center_ref < ind_center_alt) {
       score_thr <- (max(cluster_reference_score) + min(cluster_alternative_score))/2
     } else {
@@ -359,7 +365,7 @@ for (i in 1:length(fasta_files)) {
     }
     #remove outliers from reference cluster which may be associated with somatic mutations
     outliers_reference_score <- boxplot.stats(cluster_reference_score, coef = IQR_outliers_coef)$out
-    ind_outliers_reference <- which(sort(cluster_reference_score) %in% outliers_reference_score)
+    ind_outliers_reference <- which(cluster_reference_score %in% outliers_reference_score)
     score_reference_no_outliers <- cluster_reference_score[!cluster_reference_score %in% outliers_reference_score]
     num_outliers_reference <- length(cluster_reference_score) - length(score_reference_no_outliers)
     if (num_outliers_reference > 0) {
