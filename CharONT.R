@@ -304,7 +304,7 @@ for (i in 1:length(fasta_files)) {
     first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
     #remove outliers which may be associated with somatic mutations
     outliers_score <- boxplot.stats(score, coef = IQR_outliers_coef)$out
-    ind_outliers <- which(sort(score) %in% outliers_score)
+    ind_outliers <- which(score %in% outliers_score)
     score_no_outliers <- score[!score %in% outliers_score]
     num_outliers <- length(score) - length(score_no_outliers)
     if (num_outliers > 0) {
