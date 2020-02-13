@@ -69,7 +69,7 @@ Usage: Rscript CharONT.R \<analysis_dir\>
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running. The script is run by **CharONT_preprocessing.R**, but can be also run as a main script if you have already basecalled and demultiplexed your sequences.
 
 Inputs:
-* \<analysis_dir\>: directory containing fastq files for each sample named BC\<numbers\>.fastq
+* \<analysis_dir\>: directory containing fastq files for each sample
 
 Outputs (saved in <analysis_dir>):
 * \<"sample_name"\_first_allele.fasta\>: consensus sequence for first allele in fasta format
@@ -107,18 +107,18 @@ Outputs (saved in \<fast5_dir\>_analysis/preprocessing):
 
 **Extract_amplicons.sh**
 
-Usage: Extract_amplicons.sh \<fastq_reads\> \<primer_sequence_one\> \<primer_sequence_two\> \<pcr_id_thr\>
+Usage: Extract_amplicons.sh \<"sample_name".fastq\> \<primer_sequence_one\> \<primer_sequence_two\> \<pcr_id_thr\>
 
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running.
 
 Inputs:
-* \<fastq_reads\>: fastq file containing reads that need filtering and trimming to look like PCR amplicons
+* \<"sample_name".fastq\>: fastq file containing reads that need filtering and trimming to look like PCR amplicons
 * \<primer_sequence_one\>: sequence of first _in-silico_ PCR primer to look for, flanking the region of interest
 * \<primer_sequence_two\>: sequence of second _in-silico_ PCR primer to look for, flanking the region of interest
 * \<pcr_id_thr>: minimum identity threshold that _in-silico_ PCR primers need for annealing
 
 Outputs:
-* BC01.fast*: fastq and fasta files containing amplicon-like sequences extracted from \<fastq_reads\> based on \<primer_sequence_one\> and \<primer_sequence_two\> sequences
+* \<"sample_name"\_trimmed.fastq\>: fastq file containing amplicon-like sequences extracted from \<"sample_name".fastq\> based on \<primer_sequence_one\> and \<primer_sequence_two\> sequences
 * \<"sample_name"\_in_silico_pcr_one.sam\>: sam file containing alignments between \<primer_sequence_one\> and \<fastq_reads\>
 * \<"sample_name"\_in_silico_pcr_two.sam\>: sam file containing alignments between \<primer_sequence_two\> and \<fastq_reads\>
  
