@@ -81,11 +81,11 @@ TRP <- 200
 
 logfile <- paste0(analysis_dir, "/logfile.txt")
 
-fastq_files <- list.files(path = analysis_dir, pattern = "BC\\d+\\.fastq", full.names = TRUE)
-fasta_files <- list.files(path = analysis_dir, pattern = "BC\\d+\\.fasta", full.names = TRUE)
+fastq_files <- list.files(path = analysis_dir, pattern = "\\.fastq", full.names = TRUE)
+fasta_files <- list.files(path = analysis_dir, pattern = "\\.fasta", full.names = TRUE)
 
 if (length(fastq_files) == 0) {
-  stop(paste0("No fastq files BC<numbers>.fastq in ", analysis_dir, " directory"))
+  stop(paste0("No fastq files in ", analysis_dir, " directory"))
 }
 
 if (length(fasta_files) > 0) {

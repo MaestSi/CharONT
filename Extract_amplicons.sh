@@ -25,17 +25,14 @@ THR=$4
 
 MSA=msa.sh
 CUTPRIMERS=cutprimers.sh
-SEQTK=seqtk
 
 working_dir=$(dirname $(realpath $FASTQ_READS))
 reads_full=$(realpath $FASTQ_READS)
 sample_name=$(echo $(basename $(realpath $FASTQ_READS)) | sed 's/\.fa.*//' | sed 's/\.fq.*//')
 sam_file_one=$working_dir"/"$sample_name"_in_silico_pcr_one.sam"
 sam_file_two=$working_dir"/"$sample_name"_in_silico_pcr_two.sam"
-trimmed_reads_fq=$working_dir"/BC01.fastq"
-trimmed_reads_fa=$working_dir"/BC01.fasta"
+trimmed_reads_fq=$working_dir"/"$sample_name"_trimmed.fastq"
 
 $MSA in=$reads_full out=$sam_file_one literal=$PRIMER_SEQ_ONE qin=33 cutoff=$THR
 $MSA in=$reads_full out=$sam_file_two literal=$PRIMER_SEQ_TWO qin=33 cutoff=$THR
 $CUTPRIMERS in=$reads_full out=$trimmed_reads_fq sam1=$sam_file_one sam2=$sam_file_two qin=33 fake=f include=t fixjunk
-$SEQTK seq -A $trimmed_reads_fq > $trimmed_reads_fa
