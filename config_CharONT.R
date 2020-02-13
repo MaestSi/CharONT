@@ -26,6 +26,8 @@ do_subsampling_flag <- 0
 num_fast5_files <- 25
 #kit (1D/1D^2 reads/rapid 16S)
 kit <- "SQK-LSK109"
+#barcode_kits <- c("EXP-NBD103", "EXP-NBD104", "EXP-NBD114", "EXP-PBC001", "EXP-PBC096", "SQK-16S024", "SQK-LWB001", "SQK-PBK004", "SQK-PCB109", "SQK-RAB201", "SQK-RAB204", "SQK-RBK001", "SQK-RBK004", "SQK-RLB001", "SQK-RPB004", "VSK-VMK001", "VSK-VMK002")
+barcode_kits <- c("EXP-NBD104")
 #flowcell chemistry (R9.4/R9.5 chemistry)
 flowcell <- "FLO-MIN106"
 #fast_basecalling_flag <- 1 if you want to use the fast basecalling algorithm; otherwise set fast_basecalling_flag <- 0 if you want to use the accurate but slow one (FLO-MIN106 only)
