@@ -149,11 +149,15 @@ if (!dir.exists(d2)) {
     cat(text = "\n")
   } else {
      if (require_two_barcodes_flag == 1) {
-      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling, keeping only reads with barcodes at both ends of the read"), file = logfile, sep = ", ", append = TRUE)
-      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling, keeping only reads with barcodes at both ends of the read"), sep = ", ")
+       cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling, keeping only reads with barcodes at both ends of the read"), file = logfile, sep = ", ", append = TRUE)
+       cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling, keeping only reads with barcodes at both ends of the read"), sep = ", ")
+       cat(text = "\n", file = logfile, append = TRUE)
+       cat(text = "\n")
      } else  {
-      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), file = logfile, sep = ", ", append = TRUE)
-      cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), sep = ", ")
+       cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), file = logfile, sep = ", ", append = TRUE)
+       cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), sep = ", ")
+       cat(text = "\n", file = logfile, append = TRUE)
+       cat(text = "\n")
      }
   }
   if (do_in_silico_pcr == 1) {
