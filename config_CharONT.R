@@ -43,7 +43,7 @@ primers_length <- 25
 #do_in_silico_pcr <- 1 in case you are not expecting PCR-like amplicons and want to extract on-target trimmed reads; otherwise, set do_insilico_pcr <- 0
 do_in_silico_pcr <- 0
 #pcr_id_thr is the minimum identity threshold that in-silico primers need for annealing
-pcr_id_thr <- 0.8
+pcr_id_thr <- 0.75
 #if do_in_silico_pcr <- 1, extract portion of reads between sequences pcr_silico_primer_one and pcr_silico_primer_two, pcr_silico_primer sequences included
 pcr_silico_primer_one <- "sequence_of_interest"
 pcr_silico_primer_two <- "sequence_of_interest"
@@ -58,7 +58,7 @@ min_maf <- 0.2
 #set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in man); otherwise set haploid_flag <- 0
 haploid_flag <- 0
 #label as outliers reads with score > 3rd_QR + IQR_outliers_coef*IQR or score < 1st_QR - IQR_outliers_coef*IQR
-IQR_outliers_coef <- 2
+IQR_outliers_coef <- 3
 #set fast_alignment_flag <- 1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag <- 0
 fast_alignment_flag <- 1
 ########################################################################################################
