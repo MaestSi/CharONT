@@ -400,16 +400,16 @@ for (i in 1:length(fasta_files)) {
       diff <- abs(min(cluster_alternative_score) - max(cluster_reference_score))
       sign_diff <- sign(min(cluster_alternative_score)*max(cluster_reference_score))
       if (diff < thr_same_sign || (diff < thr_same_sign && sign_diff == -1)) {
-        cat(text = paste0("WARNING: Small Score difference between the two alleles; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), sep = "\n")
-        cat(text = paste0("WARNING: Small Score difference between the two alleles; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), sep = "\n")
+        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
       }
       score_thr <- (max(cluster_reference_score) + min(cluster_alternative_score))/2
     } else {
       diff <- abs(min(cluster_reference_score) - max(cluster_alternative_score))
       sign_diff <- sign(min(cluster_reference_score)*max(cluster_alternative_score))
       if (diff < thr_same_sign || (diff < thr_same_sign && sign_diff == -1)) {
-        cat(text = paste0("WARNING: Small Score difference between the two alleles; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), sep = "\n")
-        cat(text = paste0("WARNING: Small Score difference between the two alleles; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), sep = "\n")
+        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
       }
       score_thr <- (max(cluster_alternative_score) +  min(cluster_reference_score))/2
     }
