@@ -295,8 +295,15 @@ for (i in 1:length(fasta_files)) {
       score[ind_NA_score] <- 0
     } 
   }
+  #check there are at least 2 different score values if clustering has to be performed  
+  preclustering_outliers_score <- boxplot.stats(score, coef = IQR_outliers_coef)$out
+  preclustering_score_no_outliers <- score[!score %in% preclustering_outliers_score]  
   #skip clustering and assign all reads to one allele if studying haploid chromosome or if there are not 2 different maximum non-matching lengths across all reads
-  if (haploid_flag == 1 || length(score) < 2) {
+  if (haploid_flag == 1 || length(unique(preclustering_score_no_outliers)) < 2) {
+    if (length(unique(preclustering_score_no_outliers)) < 2) {
+      cat(text = paste0("WARNING: not possible to distinguish between the two alleles for sample ", sample_name, ", haploid analysis is performed"), sep = "\n")
+      cat(text = paste0("WARNING: not possible to distinguish between the two alleles for sample ", sample_name, ", haploid analysis is performed"), file = logfile, sep = "\n", append = TRUE)
+    }
     first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fastq")
     first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
     first_allele_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_first_allele.txt")
@@ -359,8 +366,20 @@ for (i in 1:length(fasta_files)) {
     cluster_alternative_index <- which(score %in% cluster_alternative_score)
     #calculate score threshold to split reads into two clusters 
     if (ind_center_ref < ind_center_alt) {
+      diff <- abs(min(cluster_alternative_score) - max(cluster_reference_score))
+      if (diff < 5) {
+        cat(text = paste0("WARNING: Score difference between the two alleles is as little as ", diff, "bp; consider running haploid analysis"), sep = "\n")
+        cat(text = paste0("WARNING: Score difference between the two alleles is as little as ", diff, "bp; consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
+        cat(text = "\n", file = logfile, append = TRUE)
+      }
       score_thr <- (max(cluster_reference_score) + min(cluster_alternative_score))/2
     } else {
+      diff <- abs(min(cluster_reference_score) - max(cluster_alternative_score))
+      if (diff < 5) {
+        cat(text = paste0("WARNING: Score difference between the two alleles is as little as ", diff, "bp; consider running haploid analysis"), sep = "\n")
+        cat(text = paste0("WARNING: Score difference between the two alleles is as little as ", diff, "bp; consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
+        cat(text = "\n", file = logfile, append = TRUE)
+      }
       score_thr <- (max(cluster_alternative_score) +  min(cluster_reference_score))/2
     }
     #remove outliers from reference cluster which may be associated with somatic mutations
