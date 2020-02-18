@@ -301,7 +301,7 @@ for (i in 1:length(fasta_files)) {
   if (num_preclustering_outliers > 0) {
     preclustering_outliers_score <- score[ind_preclustering_outliers, ]
     preclustering_score_no_outliers <- score[-ind_preclustering_outliers, ]
-  else {
+  } else {
     preclustering_outliers_score <- c()
     preclustering_score_no_outliers <- score
   }
