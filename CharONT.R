@@ -414,7 +414,7 @@ for (i in 1:length(fasta_files)) {
   dev.off()
   if (num_outliers > 0) {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-    plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5), ylim = c(0, $
+    plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[-ind_outliers, 2])*1.5))
     points(score[cluster_alternative_index, ], col = "black", type = "p", pch = 19, cex = 2)
     points(score[ind_outliers, ], col = "red2", type = "p", pch = 15, cex = 2)
     legend(x = "topright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
