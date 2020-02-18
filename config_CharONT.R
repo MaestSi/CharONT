@@ -58,7 +58,7 @@ min_maf <- 0.2
 #set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in man); otherwise set haploid_flag <- 0
 haploid_flag <- 0
 #label as outliers reads with score > 3rd_QR + IQR_outliers_coef*IQR or score < 1st_QR - IQR_outliers_coef*IQR
-IQR_outliers_coef <- 3
+IQR_outliers_coef <- 2
 #set fast_alignment_flag <- 1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag <- 0
 fast_alignment_flag <- 1
 ########################################################################################################
