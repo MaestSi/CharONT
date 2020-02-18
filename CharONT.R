@@ -298,8 +298,13 @@ for (i in 1:length(fasta_files)) {
   preclustering_outliers_score_ins <- boxplot.stats(score[, 2], coef = IQR_outliers_coef)$out
   ind_preclustering_outliers <- which(score[, 1] %in% preclustering_outliers_score_dels | score[, 2] %in% preclustering_outliers_score_ins)
   num_preclustering_outliers <- length(ind_preclustering_outliers)
-  preclustering_outliers_score <- score[ind_preclustering_outliers, ]
-  preclustering_score_no_outliers <- score[-ind_preclustering_outliers, ]  
+  if (num_preclustering_outliers > 0) {
+    preclustering_outliers_score <- score[ind_preclustering_outliers, ]
+    preclustering_score_no_outliers <- score[-ind_preclustering_outliers, ]
+  else {
+    preclustering_outliers_score <- c()
+    preclustering_score_no_outliers <- score
+  }
   #skip clustering and assign all reads to one allele if studying haploid chromosome or if there are not 2 different maximum non-matching lengths across all reads
   if (haploid_flag == 1 || nrow(unique(preclustering_score_no_outliers)) < 2) {
     if (nrow(unique(preclustering_score_no_outliers)) < 2) {
@@ -408,6 +413,12 @@ for (i in 1:length(fasta_files)) {
   legend(x = "topright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
   dev.off()
   if (num_outliers > 0) {
+    png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
+    plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5), ylim = c(0, $
+    points(score[cluster_alternative_index, ], col = "black", type = "p", pch = 19, cex = 2)
+    points(score[ind_outliers, ], col = "red2", type = "p", pch = 15, cex = 2)
+    legend(x = "topright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
+    dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores_no_outliers.png"))
     plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
     points(score[cluster_alternative_index_no_outliers, ], col = "black", type = "p", pch = 19, cex = 2)
@@ -419,10 +430,13 @@ for (i in 1:length(fasta_files)) {
     write.table(x=outliers_readnames, quote = FALSE, file = outliers_reads_names, row.names = FALSE, col.names = FALSE)
     outliers_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_outliers.fastq")
     system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
-  }
-  if (num_outliers > 0) {
     reads_names_no_outliers <- reads_names[-ind_outliers]
   } else {
+    png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
+    plot(score, xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5), ylim = c(0, $
+    points(score[cluster_alternative_index, ], col = "black", type = "p", pch = 19, cex = 2)
+    legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
+    dev.off()
     reads_names_no_outliers <- reads_names
   }
   if (skip_first_allele_flag != 1) {
