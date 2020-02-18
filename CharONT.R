@@ -112,6 +112,20 @@ if (length(grep(pattern = medaka_model, x = available_medaka_models)) > 0) {
   medaka_model <- "r941_min_high_g344"
 }
 
+if (haploid_flag == 1) {
+  cat(text = "Pipeline running in haploid mode", sep = "\n")
+  cat(text = "Pipeline running in haploid mode", file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
+} else {
+  cat(text = "Pipeline running in diploid mode", sep = "\n")
+  cat(text = "Pipeline running in diploid mode", file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
+}
+
+cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR will be labelled as Outliers"), sep = "\n")
+cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
+cat(text = "\n", file = logfile, append = TRUE)
+
 target_reads_consensus <- TRC
 target_reads_polishing <- TRP
 THR <- 0.85
@@ -192,7 +206,7 @@ for (i in 1:length(fasta_files)) {
   #extract reads names and cigar strings
   reads_names <- sam_reads_to_first_allele[, 1]
   cigar_strings <- sam_reads_to_first_allele[, 6]
-  score <- c()
+  score <- matrix(0, nrow = length(cigar_strings), ncol = 2)
   del_block_lengths <- c()
   max_del_block_lengths <- c()
   ins_block_lengths <- c()
@@ -273,34 +287,22 @@ for (i in 1:length(fasta_files)) {
   for (k in 1:length(cigar_strings)) {
     #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
     if (mean(max_ins_block_lengths) > mean(max_del_block_lengths)) {
-      #if read k carries bigger insertion than deletion it probably comes from allele #2 (score >> 0)
-      if (max(max_ins_block_lengths[k], max_clipping_block_lengths[k]) > max_del_block_lengths[k]) {
-        score[k] <- max(max_clipping_block_lengths[k], max_ins_block_lengths[k])
-      #if read k carries bigger deletion than insertion it probably comes from allele #1 (score ~ 0)
-      } else {
-        score[k] <- - max_del_block_lengths[k]
-      }
+       score[k, ] <- c(max_del_block_lengths[k], max(max_clipping_block_lengths[k], max_ins_block_lengths[k]))
     #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
     } else {
-        #if read k carries bigger deletion than insertion, it probably comes from allele #2 (score << 0)
-        if (max(max_del_block_lengths[k], max_clipping_block_lengths[k]) > max_ins_block_lengths[k]) {
-          score[k] <- - max(max_clipping_block_lengths[k], max_del_block_lengths[k])
-          #if read k carries bigger insertion than deletion it probably comes from allele #1 (score ~ 0)
-        } else {
-          score[k] <- max_ins_block_lengths[k]
-        }
+       score[k, ] <- c(max(max_clipping_block_lengths[k], max_del_block_lengths[k]), max_ins_block_lengths[k])
     }
-    if (length(which(is.na(score) == TRUE)) > 0) {
-      ind_NA_score <- which(is.na(score) == TRUE)
-      score[ind_NA_score] <- 0
-    } 
   }
   #check there are at least 2 different score values if clustering has to be performed  
-  preclustering_outliers_score <- boxplot.stats(score, coef = IQR_outliers_coef)$out
-  preclustering_score_no_outliers <- score[!score %in% preclustering_outliers_score]  
+  preclustering_outliers_score_dels <- boxplot.stats(score[, 1], coef = IQR_outliers_coef)$out
+  preclustering_outliers_score_ins <- boxplot.stats(score[, 2], coef = IQR_outliers_coef)$out
+  ind_preclustering_outliers <- which(score[, 1] %in% preclustering_outliers_score_dels | score[, 2] %in% preclustering_outliers_score_ins)
+  num_preclustering_outliers <- length(ind_preclustering_outliers)
+  preclustering_outliers_score <- score[ind_preclustering_outliers, ]
+  preclustering_score_no_outliers <- score[-ind_preclustering_outliers, ]  
   #skip clustering and assign all reads to one allele if studying haploid chromosome or if there are not 2 different maximum non-matching lengths across all reads
-  if (haploid_flag == 1 || length(unique(preclustering_score_no_outliers)) < 2) {
-    if (length(unique(preclustering_score_no_outliers)) < 2) {
+  if (haploid_flag == 1 || nrow(unique(preclustering_score_no_outliers)) < 2) {
+    if (nrow(unique(preclustering_score_no_outliers)) < 2) {
       cat(text = paste0("WARNING: not possible to distinguish between the two alleles for sample ", sample_name, ", haploid analysis is performed"), sep = "\n")
       cat(text = paste0("WARNING: not possible to distinguish between the two alleles for sample ", sample_name, ", haploid analysis is performed"), file = logfile, sep = "\n", append = TRUE)
     }
@@ -310,21 +312,22 @@ for (i in 1:length(fasta_files)) {
     first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fastq")
     first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
     #remove outliers which may be associated with somatic mutations
-    outliers_score <- boxplot.stats(score, coef = IQR_outliers_coef)$out
-    ind_outliers <- which(score %in% outliers_score)
-    score_no_outliers <- score[!score %in% outliers_score]
-    num_outliers <- length(score) - length(score_no_outliers)
+    ind_outliers <- ind_preclustering_outliers
+    score_no_outliers <- score[-ind_outliers, ]
+    num_outliers <- nrow(score) - nrow(score_no_outliers)
     if (num_outliers > 0) {
       reads_names_no_outliers <- reads_names[-ind_outliers]
     } else {
       reads_names_no_outliers <- reads_names
     }
-    num_outliers_reference <- num_outliers
+    num_outliers_reference <- 0
     num_outliers_alternative <- 0
-    ind_outliers_reference <- ind_outliers
+    ind_outliers_reference <- c()
     ind_outliers_alternative <- c()
-    outliers_reference_score <- outliers_score
+    outliers_reference_score <- c()
     outliers_alternative_score <- c()
+    cluster_alternative_index <- c()
+    cluster_alternative_index_no_outliers <- c()
     write.table(x=reads_names_no_outliers, quote = FALSE, file = first_allele_reads_names, row.names = FALSE, col.names = FALSE)
     system(paste0(SEQTK, " subseq ", fastq_files[i], " ", first_allele_reads_names, " > ", first_allele_reads_fq))
     system(paste0(SEQTK, " seq -A ", first_allele_reads_fq, " > ", first_allele_reads_fa))
@@ -334,42 +337,24 @@ for (i in 1:length(fasta_files)) {
     score_thr <- min(score)
     #cluster reads into 2 groups (ref/alt allele) based on length of the longest portion non matching the reference (first allele)
   } else {
-    #remove outliers that might negatively affect clustering
-    preclustering_outliers_score <- boxplot.stats(score, coef = IQR_outliers_coef)$out
-    preclustering_score_no_outliers <- score[!score %in% preclustering_outliers_score]
     #do clustering
     clusters <- kmeans(preclustering_score_no_outliers, 2, iter.max = 1000, nstart = 5)
-    #check if preclustering outliers should be assigned to reference or alternative cluster
-    outliers_centers_sorted <- sort(c(preclustering_outliers_score, clusters$centers))
-    ind_center_ref <- which(abs(outliers_centers_sorted) == min(abs(clusters$centers)))
-    ind_center_alt <- which(abs(outliers_centers_sorted) == max(abs(clusters$centers)))
-    #determine which center is the center of reference cluster, and assign outliers to one of the clusters
-    if (ind_center_ref < ind_center_alt) {
-      preclustering_outliers_reference_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[1:(ind_center_ref - 1)])
-      preclustering_outliers_alternative_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[(ind_center_ref + 2):length(outliers_centers_sorted)])
-    } else {
-      preclustering_outliers_alternative_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[1:(ind_center_alt - 1)])
-      preclustering_outliers_reference_score <- intersect(preclustering_outliers_score, outliers_centers_sorted[(ind_center_alt + 2):length(outliers_centers_sorted)])
-    }
-    #find index of preclustering outliers
-    ind_outliers_reference_preclustering <- which(score %in% preclustering_outliers_reference_score)
-    ind_outliers_alternative_preclustering <- which(score %in% preclustering_outliers_alternative_score)
     #find index and score of reference reads
-    cluster_reference_id <- which(abs(clusters$centers) == min(abs(clusters$centers)))[1]
-    cluster_reference_index_tmp <- which(clusters$cluster == cluster_reference_id)
-    cluster_reference_score <- c(preclustering_score_no_outliers[cluster_reference_index_tmp], preclustering_outliers_reference_score)
-    cluster_reference_index <- which(score %in% cluster_reference_score)
+    cluster_reference_id <- unique(which(rowMeans(clusters$centers) == min(rowMeans(clusters$centers))))
+    cluster_reference_index <- which(clusters$cluster == cluster_reference_id)
+    cluster_reference_score <- preclustering_score_no_outliers[cluster_reference_index, ]
+    cluster_reference_index <- which(score[, 1] %in% cluster_reference_score[, 1] & score[, 2] %in% cluster_reference_score[, 2])
     #find index and score of alternative reads
-    cluster_alternative_id <- which(abs(clusters$centers) == max(abs(clusters$centers)))[1]
+    cluster_alternative_id <- unique(which(rowMeans(clusters$centers) == max(rowMeans(clusters$centers))))
     cluster_alternative_index_tmp <- which(clusters$cluster == cluster_alternative_id)
-    cluster_alternative_score <- c(preclustering_score_no_outliers[cluster_alternative_index_tmp], preclustering_outliers_alternative_score)
-    cluster_alternative_index <- which(score %in% cluster_alternative_score)
-
+    cluster_alternative_score <- preclustering_score_no_outliers[cluster_alternative_index_tmp, ]
+    cluster_alternative_index <- which(score[, 1] %in% cluster_alternative_score[, 1] & score[, 2] %in% cluster_alternative_score[, 2])
     #remove outliers from reference cluster which may be associated with somatic mutations
-    outliers_reference_score <- boxplot.stats(cluster_reference_score, coef = IQR_outliers_coef)$out
-    ind_outliers_reference <- which(score %in% outliers_reference_score)
-    score_reference_no_outliers <- cluster_reference_score[!cluster_reference_score %in% outliers_reference_score]
-    num_outliers_reference <- length(cluster_reference_score) - length(score_reference_no_outliers)
+    outliers_reference_score_dels <- boxplot.stats(cluster_reference_score[, 1], coef = IQR_outliers_coef)$out
+    outliers_reference_score_ins <- boxplot.stats(cluster_reference_score[, 2], coef = IQR_outliers_coef)$out
+    ind_outliers_reference <- which(score[, 1] %in% outliers_reference_score_dels | score[, 2] %in% outliers_reference_score_ins)
+    score_reference_no_outliers <- score[setdiff(cluster_reference_index, ind_outliers_reference), ]
+    num_outliers_reference <- nrow(cluster_reference_score) - nrow(score_reference_no_outliers)
     if (num_outliers_reference > 0) {
       cluster_reference_index_no_outliers <- setdiff(cluster_reference_index, ind_outliers_reference)
       cluster_reference_readnames <- reads_names[cluster_reference_index_no_outliers]
@@ -378,10 +363,12 @@ for (i in 1:length(fasta_files)) {
       cluster_reference_readnames <- reads_names[cluster_reference_index]
     }
     #remove outliers from alternative cluster which may be associated with somatic mutations
-    outliers_alternative_score <- boxplot.stats(cluster_alternative_score, coef = IQR_outliers_coef)$out
-    ind_outliers_alternative <- which(score %in% outliers_alternative_score)
-    score_alternative_no_outliers <- cluster_alternative_score[!cluster_alternative_score %in% outliers_alternative_score]
-    num_outliers_alternative <- length(cluster_alternative_score) - length(score_alternative_no_outliers)
+    outliers_alternative_score_dels <- boxplot.stats(cluster_alternative_score[, 1], coef = IQR_outliers_coef)$out
+    outliers_alternative_score_ins <- boxplot.stats(cluster_alternative_score[, 2], coef = IQR_outliers_coef)$out
+    ind_outliers_alternative <- which(score[, 1] %in% outliers_alternative_score_dels | score[, 2] %in% outliers_alternative_score_ins)
+    outliers_alternative_score <- score[ind_outliers_alternative, ]
+    score_alternative_no_outliers <- score[setdiff(cluster_alternative_index, ind_outliers_alternative), ]
+    num_outliers_alternative <- nrow(cluster_alternative_score) - nrow(score_alternative_no_outliers)
     if (num_outliers_alternative > 0) {
       cluster_alternative_index_no_outliers <- setdiff(cluster_alternative_index, ind_outliers_alternative)
       cluster_alternative_readnames <- reads_names[cluster_alternative_index_no_outliers]
@@ -389,31 +376,9 @@ for (i in 1:length(fasta_files)) {
       cluster_alternative_index_no_outliers <- cluster_alternative_index
       cluster_alternative_readnames <- reads_names[cluster_alternative_index]
     }
-    median_cluster_reference_nonreflen <- clusters$centers[cluster_reference_id]
-    median_cluster_alternative_nonreflen <- clusters$centers[cluster_alternative_id]
-    clusters$median <- c(median_cluster_reference_nonreflen, median_cluster_alternative_nonreflen)
-
-    #calculate score threshold to split reads into two clusters
-    thr_same_sign <- 5
-    thr_alt_sign <- 15
-    if (ind_center_ref < ind_center_alt) {
-      diff <- abs(min(cluster_alternative_score) - max(cluster_reference_score))
-      sign_diff <- sign(min(cluster_alternative_score)*max(cluster_reference_score))
-      if (diff < thr_same_sign || (diff < thr_alt_sign && sign_diff == -1)) {
-        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), sep = "\n")
-        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
-      }
-      score_thr <- (max(cluster_reference_score) + min(cluster_alternative_score))/2
-    } else {
-      diff <- abs(min(cluster_reference_score) - max(cluster_alternative_score))
-      sign_diff <- sign(min(cluster_reference_score)*max(cluster_alternative_score))
-      if (diff < thr_same_sign || (diff < thr_alt_sign && sign_diff == -1)) {
-        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), sep = "\n")
-        cat(text = paste0("WARNING: Small Score difference between the two alleles for sample ", sample_name, "; check ", sample_name, "_reads_scores.png and consider running haploid analysis"), file = logfile, sep = "\n", append = TRUE)
-      }
-      score_thr <- (max(cluster_alternative_score) +  min(cluster_reference_score))/2
-    }
-
+    median_cluster_reference_nonreflen <- clusters$centers[cluster_reference_id, ]
+    median_cluster_alternative_nonreflen <- clusters$centers[cluster_alternative_id, ]
+    clusters$median <- rbind(median_cluster_reference_nonreflen, median_cluster_alternative_nonreflen, deparse.level = 0)
     first_allele_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_first_allele.txt")
     first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fastq")
     first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
@@ -426,33 +391,29 @@ for (i in 1:length(fasta_files)) {
     write.table(x=cluster_alternative_readnames, quote = FALSE, file = second_allele_reads_names, row.names = FALSE, col.names = FALSE)
     system(paste0(SEQTK, " subseq ", fastq_files[i], " ", second_allele_reads_names, " > ", second_allele_reads_fq))
     system(paste0(SEQTK, " seq -A ", second_allele_reads_fq, " > ", second_allele_reads_fa))
-    outliers_readnames <- reads_names[which(score %in% unique(c(outliers_reference_score, outliers_alternative_score)))]
+    outliers_readnames <- reads_names[c(ind_outliers_reference, ind_outliers_alternative)]
     outliers_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_outliers.txt")
     write.table(x=outliers_readnames, quote = FALSE, file = outliers_reads_names, row.names = FALSE, col.names = FALSE)
     outliers_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_outliers.fastq")
     system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
   }
-  num_outliers <- num_outliers_reference + num_outliers_alternative
+  num_outliers <- num_outliers_reference + num_outliers_alternative + num_preclustering_outliers
+  ind_outliers <- c(ind_outliers_reference, ind_outliers_alternative, ind_preclustering_outliers)
   allelic_ratio_outliers <- num_outliers/num_reads_sample
   allelic_ratio_perc_outliers <- allelic_ratio_outliers*100
   png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-  plot(1:length(score), sort(score), xlab = "Reads", ylab = "Score (bp)", main = "Reads scores")
-  abline(h = score_thr, col = "blue", lty = 2, lwd = 3)
-  if(num_outliers > 0) {
-    outliers_score <- sort(c(outliers_reference_score, outliers_alternative_score))
-    ind_outliers <- which(sort(score) %in% outliers_score)
-    lines(ind_outliers, sort(score)[ind_outliers], col = "red", type = "p")
-  }
+  plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5), ylim = c(0, max(score[, 2])*1.5))
+  points(score[cluster_alternative_index, ], col = "black", type = "p", pch = 19, cex = 2)
+  points(score[ind_outliers, ], col = "red2", type = "p", pch = 15, cex = 2)
+  legend(x = "topright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
   dev.off()
   if (num_outliers > 0) {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores_no_outliers.png"))
-    score_no_outliers <- sort(score)[-ind_outliers]
-    plot(1:length(score_no_outliers), score_no_outliers, xlab = "Reads", ylab = "Score (bp)", main = "Reads scores")
-    abline(h = score_thr, col = "blue", lty = 2, lwd = 3)
-    dev.off()
+    plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
+    points(score[cluster_alternative_index_no_outliers, ], col = "black", type = "p", pch = 19, cex = 2)
+    legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads (", sprintf("%.2f", allelic_ratio_perc_outliers), "%), possibly associated with somatic mutations, have been discarded"), sep = "\n")
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads (", sprintf("%.2f", allelic_ratio_perc_outliers), "%), possibly associated with somatic mutations, have been discarded"),  file = logfile, sep = "\n", append = TRUE)
-    ind_outliers <- which(score %in% c(outliers_reference_score, outliers_alternative_score))
     outliers_readnames <- reads_names[ind_outliers]
     outliers_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_outliers.txt")
     write.table(x=outliers_readnames, quote = FALSE, file = outliers_reads_names, row.names = FALSE, col.names = FALSE)
