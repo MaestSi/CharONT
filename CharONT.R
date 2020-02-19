@@ -318,11 +318,12 @@ for (i in 1:length(fasta_files)) {
     first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
     #remove outliers which may be associated with somatic mutations
     ind_outliers <- ind_preclustering_outliers
-    score_no_outliers <- score[-ind_outliers, ]
-    num_outliers <- nrow(score) - nrow(score_no_outliers)
+    num_outliers <- length(ind_outliers) 
     if (num_outliers > 0) {
+      score_no_outliers <- score[-ind_outliers, ]
       reads_names_no_outliers <- reads_names[-ind_outliers]
     } else {
+      score_no_outliers <- score
       reads_names_no_outliers <- reads_names
     }
     num_outliers_reference <- 0
