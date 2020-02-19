@@ -287,9 +287,23 @@ for (i in 1:length(fasta_files)) {
   for (k in 1:length(cigar_strings)) {
     #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
     if (mean(max_ins_block_lengths) > mean(max_del_block_lengths)) {
+       if (max(max_clipping_block_lengths) > 0) {
+         xlabplot <- "Max DEL (bp)"
+         ylabplot <- "Max INS or Clipping (bp)"
+       } else {
+         xlabplot <- "Max DEL (bp)"
+         ylabplot <- "Max INS (bp)"
+       }
        score[k, ] <- c(max_del_block_lengths[k], max(max_clipping_block_lengths[k], max_ins_block_lengths[k]))
     #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
     } else {
+      if (max(max_clipping_block_lengths) > 0) {
+         xlabplot <- "Max DEL or Clipping (bp)"
+         ylabplot <- "Max INS (bp)"
+       } else {
+         xlabplot <- "Max DEL (bp)"
+         ylabplot <- "Max INS (bp)"
+       }
        score[k, ] <- c(max(max_clipping_block_lengths[k], max_del_block_lengths[k]), max_ins_block_lengths[k])
     }
   }
@@ -409,13 +423,13 @@ for (i in 1:length(fasta_files)) {
   allelic_ratio_perc_outliers <- allelic_ratio_outliers*100
   if (num_outliers > 0) {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
+    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
     points(matrix(score[cluster_alternative_index_no_outliers, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
     points(matrix(score[ind_outliers, ], ncol = 2), col = "red2", type = "p", pch = 15, cex = 2)
     legend(x = "topright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
     dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores_no_outliers.png"))
-    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
+    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
     points(matrix(score[cluster_alternative_index_no_outliers, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
     legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
     dev.off()
@@ -429,7 +443,7 @@ for (i in 1:length(fasta_files)) {
     reads_names_no_outliers <- reads_names[-ind_outliers]
   } else {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-    plot(matrix(score, ncol = 2), xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
+    plot(matrix(score, ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
     points(matrix(score[cluster_alternative_index, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
     legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
     dev.off()
