@@ -148,7 +148,7 @@ for (i in 1:length(fasta_files)) {
   ids_mac_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_ids_mac.txt")
   mac_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_mac.fasta")
   mac_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_mac.fastq")
-  system(paste0(VSEARCH, " --cluster_smallmem ", subset_reads_fa, " --usersort --id ", THR, " --iddef 2 --clusterout_sort --fasta_width 0 --strand both --sizeout --consout ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta --clusters ", vsearch_clustering_dir, "/", sample_name, "_cluster"))
+  system(paste0(VSEARCH, " --cluster_smallmem ", subset_reads_fa, " --usersort --id ", THR, " --iddef 2 --clusterout_sort --fasta_width 0 --maxseqlength 300000000 --strand both --sizeout --consout ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta --clusters ", vsearch_clustering_dir, "/", sample_name, "_cluster"))
   centroid_mac <- system(paste0("head -n1 ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta"), intern = TRUE)
   id_centroid <-  system(paste0("echo ", "\"", centroid_mac, "\"", " | sed 's/centroid=//g' | sed 's/;seqs.*$//g'"), intern = TRUE)
   clusters_vsearch <- list.files(path = vsearch_clustering_dir, pattern = paste0(sample_name, "_cluster"), full.names = TRUE)
