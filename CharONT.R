@@ -346,19 +346,19 @@ for (i in 1:length(fasta_files)) {
     clusters <- kmeans(preclustering_score_no_outliers, 2, iter.max = 1000, nstart = 5)
     #find index and score of reference reads
     cluster_reference_id <- unique(which(rowMeans(clusters$centers) == min(rowMeans(clusters$centers))))
-    cluster_reference_index <- which(clusters$cluster == cluster_reference_id)
-    cluster_reference_score <- preclustering_score_no_outliers[cluster_reference_index, ]
+    cluster_reference_index_tmp <- which(clusters$cluster == cluster_reference_id)
+    cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
     cluster_reference_index <- which(score[, 1] %in% cluster_reference_score[, 1] & score[, 2] %in% cluster_reference_score[, 2])
     #find index and score of alternative reads
     cluster_alternative_id <- unique(which(rowMeans(clusters$centers) == max(rowMeans(clusters$centers))))
     cluster_alternative_index_tmp <- which(clusters$cluster == cluster_alternative_id)
-    cluster_alternative_score <- preclustering_score_no_outliers[cluster_alternative_index_tmp, ]
+    cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
     cluster_alternative_index <- which(score[, 1] %in% cluster_alternative_score[, 1] & score[, 2] %in% cluster_alternative_score[, 2])
     #remove outliers from reference cluster which may be associated with somatic mutations
     outliers_reference_score_dels <- boxplot.stats(cluster_reference_score[, 1], coef = IQR_outliers_coef)$out
     outliers_reference_score_ins <- boxplot.stats(cluster_reference_score[, 2], coef = IQR_outliers_coef)$out
     ind_outliers_reference <- intersect(which(score[, 1] %in% outliers_reference_score_dels | score[, 2] %in% outliers_reference_score_ins), cluster_reference_index)
-    score_reference_no_outliers <- score[setdiff(cluster_reference_index, ind_outliers_reference), ]
+    score_reference_no_outliers <- matrix(score[setdiff(cluster_reference_index, ind_outliers_reference), ], ncol = 2)
     num_outliers_reference <- nrow(cluster_reference_score) - nrow(score_reference_no_outliers)
     if (num_outliers_reference > 0) {
       cluster_reference_index_no_outliers <- setdiff(cluster_reference_index, ind_outliers_reference)
@@ -372,7 +372,7 @@ for (i in 1:length(fasta_files)) {
     outliers_alternative_score_ins <- boxplot.stats(cluster_alternative_score[, 2], coef = IQR_outliers_coef)$out
     ind_outliers_alternative <- intersect(which(score[, 1] %in% outliers_alternative_score_dels | score[, 2] %in% outliers_alternative_score_ins), cluster_alternative_index)
     outliers_alternative_score <- score[ind_outliers_alternative, ]
-    score_alternative_no_outliers <- score[setdiff(cluster_alternative_index, ind_outliers_alternative), ]
+    score_alternative_no_outliers <- matrix(score[setdiff(cluster_alternative_index, ind_outliers_alternative), ], ncol = 2)
     num_outliers_alternative <- nrow(cluster_alternative_score) - nrow(score_alternative_no_outliers)
     if (num_outliers_alternative > 0) {
       cluster_alternative_index_no_outliers <- setdiff(cluster_alternative_index, ind_outliers_alternative)
@@ -408,14 +408,14 @@ for (i in 1:length(fasta_files)) {
   allelic_ratio_perc_outliers <- allelic_ratio_outliers*100
   if (num_outliers > 0) {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-    plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
-    points(score[cluster_alternative_index_no_outliers, ], col = "black", type = "p", pch = 19, cex = 2)
-    points(score[ind_outliers, ], col = "red2", type = "p", pch = 15, cex = 2)
+    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
+    points(matrix(score[cluster_alternative_index_no_outliers, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
+    points(matrix(score[ind_outliers, ], ncol = 2), col = "red2", type = "p", pch = 15, cex = 2)
     legend(x = "topright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
     dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores_no_outliers.png"))
-    plot(score[-ind_outliers, ], xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
-    points(score[cluster_alternative_index_no_outliers, ], col = "black", type = "p", pch = 19, cex = 2)
+    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
+    points(matrix(score[cluster_alternative_index_no_outliers, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
     legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
     dev.off()
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads (", sprintf("%.2f", allelic_ratio_perc_outliers), "%), possibly associated with somatic mutations, have been discarded"), sep = "\n")
@@ -428,8 +428,8 @@ for (i in 1:length(fasta_files)) {
     reads_names_no_outliers <- reads_names[-ind_outliers]
   } else {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-    plot(score, xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
-    points(score[cluster_alternative_index, ], col = "black", type = "p", pch = 19, cex = 2)
+    plot(matrix(score, ncol = 2), xlab = "DELs (bp)", ylab = "INSs (bp)", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
+    points(matrix(score[cluster_alternative_index, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
     legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
     dev.off()
     reads_names_no_outliers <- reads_names
