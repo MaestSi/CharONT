@@ -372,10 +372,26 @@ for (i in 1:length(fasta_files)) {
     #find index and score of alternative reads
     cluster_alternative_id <- unique(which(rowMeans(clusters$centers) == max(rowMeans(clusters$centers))))
     cluster_alternative_index_tmp <- which(clusters$cluster == cluster_alternative_id)
+    #find differences between preclustering outliers and centers
+    diff_ref <- apply(t(abs(apply(preclustering_outliers_score, 1, function(x) x - clusters$centers[cluster_reference_id, ]))), 1, FUN=max)
+    diff_alt <- apply(t(abs(apply(preclustering_outliers_score, 1, function(x) x - clusters$centers[cluster_alternative_id, ]))), 1, FUN=max)
+    if (cluster_reference_id == 1) {
+      diff <- cbind(diff_ref, diff_alt)
+    } else {
+      diff <- cbind(diff_alt, diff_ref)
+    }
+    #determine if preclustering outliers should be assigned to reference or alternative cluster
+    preclustering_outliers_score_reference <- preclustering_outliers_score[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_reference_id), ]
+    preclustering_outliers_score_alternative <- preclustering_outliers_score[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_alternative_id),]
+    #assign preclustering outliers to reference cluster
+    if (length(preclustering_outliers_score_reference) > 0) {
+      cluster_reference_score <- matrix(rbind(preclustering_outliers_score_reference, preclustering_score_no_outliers[cluster_alternative_index_tmp, ]), ncol = 2)
+    } else {
+      cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
+    }
     #assign preclustering outliers to alternative cluster
-    if (num_preclustering_outliers > 0) {
-      cluster_alternative_score <- matrix(rbind(preclustering_outliers_score, preclustering_score_no_outliers[cluster_alternative_index_tmp, ]), ncol = 2)
-      #cluster_alternative_index <- which(score[, 1] %in% cluster_alternative_score[, 1] & score[, 2] %in% cluster_alternative_score[, 2])
+    if (length(preclustering_outliers_score_alternative) > 0) {
+      cluster_alternative_score <- matrix(rbind(preclustering_outliers_score_alternative, preclustering_score_no_outliers[cluster_alternative_index_tmp, ]), ncol = 2)
     } else {
       cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
     }
