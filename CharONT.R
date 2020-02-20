@@ -340,11 +340,11 @@ for (i in 1:length(fasta_files)) {
       score_no_outliers <- score
       reads_names_no_outliers <- reads_names
     }
-    num_outliers_reference <- 0
+    num_outliers_reference <- num_preclustering_outliers
     num_outliers_alternative <- 0
-    ind_outliers_reference <- c()
+    ind_outliers_reference <- ind_preclustering_outliers
     ind_outliers_alternative <- c()
-    outliers_reference_score <- c()
+    outliers_reference_score <- preclustering_outliers_score
     outliers_alternative_score <- c()
     cluster_alternative_index <- c()
     cluster_alternative_index_no_outliers <- c()
@@ -367,8 +367,14 @@ for (i in 1:length(fasta_files)) {
     #find index and score of alternative reads
     cluster_alternative_id <- unique(which(rowMeans(clusters$centers) == max(rowMeans(clusters$centers))))
     cluster_alternative_index_tmp <- which(clusters$cluster == cluster_alternative_id)
-    cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
-    cluster_alternative_index <- which(score[, 1] %in% cluster_alternative_score[, 1] & score[, 2] %in% cluster_alternative_score[, 2])
+    #assign preclustering outliers to alternative cluster
+    if (num_preclustering_outliers > 0) {
+      cluster_alternative_score <- matrix(rbind(preclustering_outliers_score, preclustering_score_no_outliers[cluster_alternative_index_tmp, ]), ncol = 2)
+      cluster_alternative_index <- c(ind_preclustering_outliers, which(score[, 1] %in% cluster_alternative_score[, 1] & score[, 2] %in% cluster_alternative_score[, 2]))
+    } else {
+      cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
+      cluster_alternative_index <- which(score[, 1] %in% cluster_alternative_score[, 1] & score[, 2] %in% cluster_alternative_score[, 2])
+    }
     #remove outliers from reference cluster which may be associated with somatic mutations
     outliers_reference_score_dels <- boxplot.stats(cluster_reference_score[, 1], coef = IQR_outliers_coef)$out
     outliers_reference_score_ins <- boxplot.stats(cluster_reference_score[, 2], coef = IQR_outliers_coef)$out
@@ -417,8 +423,8 @@ for (i in 1:length(fasta_files)) {
     outliers_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_outliers.fastq")
     system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
   }
-  num_outliers <- num_outliers_reference + num_outliers_alternative + num_preclustering_outliers
-  ind_outliers <- c(ind_outliers_reference, ind_outliers_alternative, ind_preclustering_outliers)
+  num_outliers <- num_outliers_reference + num_outliers_alternative
+  ind_outliers <- c(ind_outliers_reference, ind_outliers_alternative)
   allelic_ratio_outliers <- num_outliers/num_reads_sample
   allelic_ratio_perc_outliers <- allelic_ratio_outliers*100
   if (num_outliers > 0) {
