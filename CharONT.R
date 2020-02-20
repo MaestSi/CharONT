@@ -313,11 +313,11 @@ for (i in 1:length(fasta_files)) {
   ind_preclustering_outliers <- which(score[, 1] %in% preclustering_outliers_score_dels | score[, 2] %in% preclustering_outliers_score_ins)
   num_preclustering_outliers <- length(ind_preclustering_outliers)
   if (num_preclustering_outliers > 0) {
-    preclustering_outliers_score <- score[ind_preclustering_outliers, ]
-    preclustering_score_no_outliers <- score[-ind_preclustering_outliers, ]
+    preclustering_outliers_score <- matrix(score[ind_preclustering_outliers, ], ncol = 2)
+    preclustering_score_no_outliers <- matrix(score[-ind_preclustering_outliers, ], ncol = 2)
   } else {
     preclustering_outliers_score <- c()
-    preclustering_score_no_outliers <- score
+    preclustering_score_no_outliers <- matrix(score, ncol = 2)
   }
   #skip clustering and assign all reads to one allele if studying haploid chromosome or if there are not 2 different maximum non-matching lengths across all reads
   if (haploid_flag == 1 || nrow(unique(preclustering_score_no_outliers)) < 2) {
@@ -375,8 +375,8 @@ for (i in 1:length(fasta_files)) {
         diff <- cbind(diff_alt, diff_ref)
       }
       #determine if preclustering outliers should be assigned to reference or alternative cluster
-      preclustering_outliers_score_reference <- matrix(preclustering_outliers_score, ncol = 2)[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_reference_id), ]
-      preclustering_outliers_score_alternative <- matrix(preclustering_outliers_score, ncol = 2)[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_alternative_id),]
+      preclustering_outliers_score_reference <- matrix(matrix(preclustering_outliers_score, ncol = 2)[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_reference_id), ], ncol = 2)
+      preclustering_outliers_score_alternative <- matrix(matrix(preclustering_outliers_score, ncol = 2)[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_alternative_id),], ncol = 2)
       #assign preclustering outliers to reference cluster
       if (length(preclustering_outliers_score_reference) > 0) {
         cluster_reference_score <- matrix(rbind(preclustering_outliers_score_reference, preclustering_score_no_outliers[cluster_reference_index_tmp, ]), ncol = 2)
