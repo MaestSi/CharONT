@@ -362,13 +362,6 @@ for (i in 1:length(fasta_files)) {
     #find index and score of reference reads
     cluster_reference_id <- unique(which(rowMeans(clusters$centers) == min(rowMeans(clusters$centers))))
     cluster_reference_index_tmp <- which(clusters$cluster == cluster_reference_id)
-    cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
-    #cluster_reference_index <- which(score[, 1] %in% cluster_reference_score[, 1] & score[, 2] %in% cluster_reference_score[, 2])
-    cluster_reference_index <- c()
-    for (k in 1:length(cluster_reference_score[, 1])) {
-      ind <- which(apply(score, 1, function(x) all(x == matrix(cluster_reference_score[k, ], ncol = 2))))
-      cluster_reference_index <- unique(c(cluster_reference_index, ind))
-    }
     #find index and score of alternative reads
     cluster_alternative_id <- unique(which(rowMeans(clusters$centers) == max(rowMeans(clusters$centers))))
     cluster_alternative_index_tmp <- which(clusters$cluster == cluster_alternative_id)
@@ -385,7 +378,7 @@ for (i in 1:length(fasta_files)) {
     preclustering_outliers_score_alternative <- preclustering_outliers_score[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_alternative_id),]
     #assign preclustering outliers to reference cluster
     if (length(preclustering_outliers_score_reference) > 0) {
-      cluster_reference_score <- matrix(rbind(preclustering_outliers_score_reference, preclustering_score_no_outliers[cluster_alternative_index_tmp, ]), ncol = 2)
+      cluster_reference_score <- matrix(rbind(preclustering_outliers_score_reference, preclustering_score_no_outliers[cluster_reference_index_tmp, ]), ncol = 2)
     } else {
       cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
     }
@@ -394,6 +387,11 @@ for (i in 1:length(fasta_files)) {
       cluster_alternative_score <- matrix(rbind(preclustering_outliers_score_alternative, preclustering_score_no_outliers[cluster_alternative_index_tmp, ]), ncol = 2)
     } else {
       cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
+    }
+    cluster_reference_index <- c()
+    for (k in 1:length(cluster_reference_score[, 1])) {
+      ind <- which(apply(score, 1, function(x) all(x == matrix(cluster_reference_score[k, ], ncol = 2))))
+      cluster_reference_index <- unique(c(cluster_reference_index, ind))
     }
     cluster_alternative_index <- c()
     for (k in 1:length(cluster_alternative_score[, 1])) {
