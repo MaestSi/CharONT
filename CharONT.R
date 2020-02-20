@@ -307,6 +307,8 @@ for (i in 1:length(fasta_files)) {
        score[k, ] <- c(max(max_clipping_block_lengths[k], max_del_block_lengths[k]), max_ins_block_lengths[k])
     }
   }
+  #add some random noise to avoid IQR = 0 with low coverage
+  score <- score + rnorm(n = nrow(score)*2, mean = 0, sd = 0.2)
   #check there are at least 2 different score values if clustering has to be performed  
   preclustering_outliers_score_dels <- boxplot.stats(score[, 1], coef = IQR_outliers_coef)$out
   preclustering_outliers_score_ins <- boxplot.stats(score[, 2], coef = IQR_outliers_coef)$out
@@ -389,6 +391,9 @@ for (i in 1:length(fasta_files)) {
       } else {
         cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
       }
+    } else {
+      cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
+      cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
     }
     cluster_reference_index <- c()
     for (k in 1:length(cluster_reference_score[, 1])) {
