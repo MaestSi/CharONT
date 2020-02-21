@@ -26,10 +26,10 @@ do_subsampling_flag <- 0
 num_fast5_files <- 25
 #kit (1D/1D^2 reads/rapid 16S)
 kit <- "SQK-LSK109"
-#barcode_kits <- c("EXP-NBD103", "EXP-NBD104", "EXP-NBD114", "EXP-PBC001", "EXP-PBC096", "SQK-16S024", "SQK-LWB001", "SQK-PBK004", "SQK-PCB109", "SQK-RAB201", "SQK-RAB204", "SQK-RBK001", "SQK-RBK004", "SQK-RLB001", "SQK-RPB004", "VSK-VMK001", "VSK-VMK002")
-barcode_kits <- c("EXP-NBD104")
 #flowcell chemistry (R9.4/R9.5 chemistry)
 flowcell <- "FLO-MIN106"
+#barcode_kits <- c("EXP-NBD103", "EXP-NBD104", "EXP-NBD114", "EXP-PBC001", "EXP-PBC096", "SQK-16S024", "SQK-LWB001", "SQK-PBK004", "SQK-PCB109", "SQK-RAB201", "SQK-RAB204", "SQK-RBK001", "SQK-RBK004", "SQK-RLB001", "SQK-RPB004", "VSK-VMK001", "VSK-VMK002")
+barcode_kits <- "EXP-NBD104"
 #fast_basecalling_flag <- 1 if you want to use the fast basecalling algorithm; otherwise set fast_basecalling_flag <- 0 if you want to use the accurate but slow one (FLO-MIN106 only)
 fast_basecalling_flag <- 0
 #medaka_model: some possibilities are r941_min_fast_g303, r941_min_high_g303, r941_min_high_g330, r941_min_high_g344; # i) pore type; ii) sequencing device; iii) basecaller variant; iv) basecaller version
@@ -57,7 +57,9 @@ min_qual <- 7
 min_maf <- 0.2
 #set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in man); otherwise set haploid_flag <- 0
 haploid_flag <- 0
-#label as outliers reads with score > 3rd_QR + IQR_outliers_coef*IQR or score < 1st_QR - IQR_outliers_coef*IQR
+#label as candidate outliers reads with score > 3rd_QR + IQR_outliers_coef_precl*IQR or score < 1st_QR - IQR_outliers_coef_precl*IQR
+IQR_outliers_coef_precl <- 10
+#label as outliers reads with score > 3rd_QR + IQR_outliers_coef*IQR or score < 1st_QR - IQR_outliers_coef*IQR; IQR is computed within each cluster
 IQR_outliers_coef <- 3
 #set fast_alignment_flag <- 1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag <- 0
 fast_alignment_flag <- 1

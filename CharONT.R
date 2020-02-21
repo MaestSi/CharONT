@@ -67,8 +67,13 @@ if (!exists("min_maf")) {
 }
 
 if (!exists("IQR_outliers_coef")) {
-  IQR_outliers_coef <- 2
+  IQR_outliers_coef <- 3
 }
+
+if (!exists("IQR_outliers_coef_precl")) {
+  IQR_outliers_coef_precl <- 10
+}
+
 
 if (!exists("fast_alignment_flag")) {
   fast_alignment_flag <- 1
@@ -116,22 +121,32 @@ if (haploid_flag == 1) {
   cat(text = "Pipeline running in haploid mode", sep = "\n")
   cat(text = "Pipeline running in haploid mode", file = logfile, sep = "\n", append = TRUE)
   cat(text = "\n", file = logfile, append = TRUE)
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as Outliers"), sep = "\n")
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
 } else {
   cat(text = "Pipeline running in diploid mode", sep = "\n")
   cat(text = "Pipeline running in diploid mode", file = logfile, sep = "\n", append = TRUE)
   cat(text = "\n", file = logfile, append = TRUE)
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as candidate Outliers"), sep = "\n")
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as candidate Outliers"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR within each cluster will be labelled as Outliers"), sep = "\n")
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR within each cluster will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
 }
-
-cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR will be labelled as Outliers"), sep = "\n")
-cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
-cat(text = "\n", file = logfile, append = TRUE)
 
 target_reads_consensus <- TRC
 target_reads_polishing <- TRP
+#threshold for clustering preliminary allele assembly
 THR <- 0.85
+#minimum number of aligned bases at a specific position to include the base in draft consensus
 plurality_value <- 0.15*target_reads_consensus
+#maximum number of reads subsampled for preliminary allele assembly
 max_num_reads_clustering <- 500
+#seed for subsampling
 seed <- 1
+#sd_noise_score is the standard deviation of gaussian-distributed noise with zero mean added to score
+sd_noise_score <- 0.2
 
 #cycle over fasta files
 for (i in 1:length(fasta_files)) {
@@ -308,10 +323,10 @@ for (i in 1:length(fasta_files)) {
     }
   }
   #add some random noise to avoid IQR = 0 with low coverage
-  score <- score + rnorm(n = nrow(score)*2, mean = 0, sd = 0.2)
+  score <- score + rnorm(n = nrow(score)*2, mean = 0, sd = sd_noise_score)
   #check there are at least 2 different score values if clustering has to be performed  
-  preclustering_outliers_score_dels <- boxplot.stats(score[, 1], coef = IQR_outliers_coef)$out
-  preclustering_outliers_score_ins <- boxplot.stats(score[, 2], coef = IQR_outliers_coef)$out
+  preclustering_outliers_score_dels <- boxplot.stats(score[, 1], coef = IQR_outliers_coef_precl)$out
+  preclustering_outliers_score_ins <- boxplot.stats(score[, 2], coef = IQR_outliers_coef_precl)$out
   ind_preclustering_outliers <- which(score[, 1] %in% preclustering_outliers_score_dels | score[, 2] %in% preclustering_outliers_score_ins)
   num_preclustering_outliers <- length(ind_preclustering_outliers)
   if (num_preclustering_outliers > 0) {
