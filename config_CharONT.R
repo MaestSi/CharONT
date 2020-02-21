@@ -60,7 +60,7 @@ haploid_flag <- 0
 #label as candidate outliers reads with score > 3rd_QR + IQR_outliers_coef_precl*IQR or score < 1st_QR - IQR_outliers_coef_precl*IQR
 IQR_outliers_coef_precl <- 3
 #label as outliers reads with score > 3rd_QR + IQR_outliers_coef*IQR or score < 1st_QR - IQR_outliers_coef*IQR; IQR is computed within each cluster
-IQR_outliers_coef <- 3
+IQR_outliers_coef <- 2
 #set fast_alignment_flag <- 1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag <- 0
 fast_alignment_flag <- 1
 ########################################################################################################
