@@ -158,7 +158,7 @@ if (!dir.exists(d2)) {
        cat(text = paste0("Demultiplexing is going to be performed by guppy_barcoder after basecalling"), sep = ", ")
        cat(text = "\n", file = logfile, append = TRUE)
        cat(text = "\n")
-     }
+    }
   }
   if (do_in_silico_pcr == 1) {
     cat(text = paste0("In-silico PCR will be performed using primers ", pcr_silico_primer_one, " and ", pcr_silico_primer_two), file = logfile, sep = ", ", append = TRUE)
@@ -248,12 +248,12 @@ cat(text = "Now performing quality control with PycoQC", sep = "\n")
 cat(text = "", file = logfile, sep = "\n", append = TRUE)
 cat(text = "", sep = "\n")
 if (skip_demultiplexing_flag == 1) {
-  system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -o ", d2, "/qc/pycoQC_report.html"))
+  system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
 } else {
   if (pair_strands_flag == 1) {
-    system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html"))
+    system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html  --min_pass_qual ", min_qual))
   } else {
-    system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html"))
+    system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
   }
 }
 demu_files <- list.files(path = d2_preprocessing, pattern = "BC", full.names = TRUE)
