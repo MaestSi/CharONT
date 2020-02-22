@@ -326,7 +326,7 @@ for (i in 1:length(fasta_files)) {
           }
         }
         max_clipping_block_lengths <- c(max_clipping_block_lengths, max(abs(clipping_block_lengths_curr_read)))
-        max_clipping_block_lengths_signed <- c(max_clipping_block_lengths_signed, clipping_block_lengths_curr_read_signed[which(abs(clipping_block_lengths_curr_read_signed) == max(abs(clipping_block_lengths_curr_read_signed)))])
+        max_clipping_block_lengths_signed <- c(max_clipping_block_lengths_signed, clipping_block_lengths_curr_read_signed[which(abs(clipping_block_lengths_curr_read_signed) == max(abs(clipping_block_lengths_curr_read_signed)))][1])
       } else {
         max_clipping_block_lengths <- c(max_clipping_block_lengths, 0)
         max_clipping_block_lengths_signed <- c(max_clipping_block_lengths_signed, 0)
@@ -356,14 +356,14 @@ for (i in 1:length(fasta_files)) {
   }
   #cycle over reads
   for (k in 1:length(cigar_strings)) {
-    #if allele #1 is the one with the shortest repeat soft-clipped portions are probably associated with insertions
-    if (max(max_clipping_block_lengths_signed) > 0) {
+    #check if read has a soft-clipped portion associated with insertion bigger than insertion
+    if (max_clipping_block_lengths_signed[k] > 0) {
       score[k, 2] <- max(max_clipping_block_lengths_signed[k], max_ins_block_lengths[k])
     } else {
       score[k, 2] <- max_ins_block_lengths[k]
     }
-    #if allele #1 is the one with the longest repeat, soft-clipped portions are probably associated with deletions
-    if (min(max_clipping_block_lengths_signed) < 0) {
+    #check if read has a soft-clipped portion associated with deletion bigger than deletion
+    if (max_clipping_block_lengths_signed[k] < 0) {
       score[k, 1] <- c(max(-max_clipping_block_lengths_signed[k], max_del_block_lengths[k]))
     } else {
       score[k, 1] <- max_del_block_lengths[k]
