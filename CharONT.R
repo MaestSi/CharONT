@@ -291,7 +291,7 @@ for (i in 1:length(fasta_files)) {
         for (l in 1:length(clipping_starting_coords)) {
           #if the soft-clipping is at the 5' of the read, subtract the starting coordinate
           if (clipping_starting_coords[l] == 1) {
-            if (as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - start_mapping_coord[k] > min_clipped_len) {
+            if (as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) > min_clipped_len) {
               clipping_block_curr_signed <- as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - start_mapping_coord[k]
               clipping_block_curr <- abs(clipping_block_curr_signed)
               clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, clipping_block_curr)
@@ -304,7 +304,7 @@ for (i in 1:length(fasta_files)) {
             }
           #if the soft-clipping is at the 3' of the read, subtract the reference length, the length of the mapping and the starting coordinate
           } else {
-            if (as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - (reference_length - mapped_length_curr_read  - start_mapping_coord[k]) > min_clipped_len) {
+            if (as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) > min_clipped_len) {
               clipping_block_curr_signed <- as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - (reference_length - mapped_length_curr_read  - start_mapping_coord[k])
               clipping_block_curr <- abs(clipping_block_curr_signed)
               clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, clipping_block_curr)
