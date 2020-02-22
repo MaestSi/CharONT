@@ -229,8 +229,8 @@ for (i in 1:length(fasta_files)) {
   max_del_block_lengths <- c()
   ins_block_lengths <- c()
   max_ins_block_lengths <- c()
-  clipping_block_lengths <- c()
   max_clipping_block_lengths <- c()
+  max_clipping_block_lengths_signed <- c()
   min_clipped_len <- 500
   
   #cycle over reads and extract for each read the longest portion non matching the reference
@@ -254,6 +254,7 @@ for (i in 1:length(fasta_files)) {
     del_block_lengths_curr_read <- c()
     ins_block_lengths_curr_read <- c()
     clipping_block_lengths_curr_read <- c()
+    clipping_block_lengths_curr_read_signed <- c()
     #if there are non matching bases
     if (nonref_starting_coords[1] != -1) {
       #if there are deletions
@@ -290,21 +291,45 @@ for (i in 1:length(fasta_files)) {
         for (l in 1:length(clipping_starting_coords)) {
           #if the soft-clipping is at the 5' of the read, subtract the starting coordinate
           if (clipping_starting_coords[l] == 1) {
-            clipping_block_curr <- abs(as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - start_mapping_coord[k])
+            if (as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - start_mapping_coord[k] > min_clipped_len) {
+              clipping_block_curr_signed <- as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - start_mapping_coord[k]
+              clipping_block_curr <- abs(clipping_block_curr_signed)
+              clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, clipping_block_curr)
+              clipping_block_lengths_curr_read_signed <- c(clipping_block_lengths_curr_read_signed, clipping_block_curr_signed)
+            } else {
+              clipping_block_curr_signed <- 0
+              clipping_block_curr <- 0
+              clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, 0)
+              clipping_block_lengths_curr_read_signed <- c(clipping_block_lengths_curr_read_signed, 0)
+            }
+          #if the soft-clipping is at the 3' of the read, subtract the reference length, the length of the mapping and the starting coordinate
           } else {
-            clipping_block_curr <- abs(as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - (reference_length - mapped_length_curr_read  - start_mapping_coord[k]))
+            if (as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - (reference_length - mapped_length_curr_read  - start_mapping_coord[k]) > min_clipped_len) {
+              clipping_block_curr_signed <- as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - (reference_length - mapped_length_curr_read  - start_mapping_coord[k])
+              clipping_block_curr <- abs(clipping_block_curr_signed)
+              clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, clipping_block_curr)
+              clipping_block_lengths_curr_read_signed <- c(clipping_block_lengths_curr_read_signed, clipping_block_curr_signed)
+            } else {
+              clipping_block_curr_signed <- 0
+              clipping_block_curr <- 0
+              clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, 0)
+              clipping_block_lengths_curr_read_signed <- c(clipping_block_lengths_curr_read_signed, 0)
+            }
           }
           if (clipping_block_curr < min_clipped_len) {
             clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, 0)
+            clipping_block_lengths_curr_read_signed <- c(clipping_block_lengths_curr_read_signed, 0)
+            
           } else {
             clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, clipping_block_curr)
+            clipping_block_lengths_curr_read_signed <- c(clipping_block_lengths_curr_read_signed, clipping_block_curr_signed)
           }
         }
-        clipping_block_lengths <- c(clipping_block_lengths, sum(clipping_block_lengths_curr_read))
-        max_clipping_block_lengths <- c(max_clipping_block_lengths, max(clipping_block_lengths_curr_read))
+        max_clipping_block_lengths <- c(max_clipping_block_lengths, max(abs(clipping_block_lengths_curr_read)))
+        max_clipping_block_lengths_signed <- c(max_clipping_block_lengths_signed, clipping_block_lengths_curr_read_signed[which(abs(clipping_block_lengths_curr_read_signed) == max(abs(clipping_block_lengths_curr_read_signed)))])
       } else {
-        clipping_block_lengths <- c(clipping_block_lengths, 0)
         max_clipping_block_lengths <- c(max_clipping_block_lengths, 0)
+        max_clipping_block_lengths_signed <- c(max_clipping_block_lengths_signed, 0)
       }
     } else {
       del_block_lengths_curr_read <- 0
@@ -313,31 +338,35 @@ for (i in 1:length(fasta_files)) {
       max_ins_block_lengths <- c(max_ins_block_lengths, 0)
       clipping_block_lengths_curr_read <- 0
       max_clipping_block_lengths <- c(max_clipping_block_lengths, 0)
+      max_clipping_block_lengths_signed <- c(max_clipping_block_lengths_signed, 0)
     }
   }
   #longest indel model
+  #if allele #1 is the one with the shortest repeat soft-clipped portions are probably associated with insertions
+  if (max(max_clipping_block_lengths_signed) > 0) {
+    ylabplot <- "Max INS or Clipped INS (bp)"
+  } else {
+    ylabplot <- "Max INS (bp)"
+  }
+  #if allele #1 is the one with the longest repeat, soft-clipped portions are probably associated with deletions
+  if (min(max_clipping_block_lengths_signed) < 0) {
+    xlabplot <- "Max DEL or Clipped DEL (bp)"
+  } else {
+    xlabplot <- "Max DEL (bp)"
+  }
   #cycle over reads
   for (k in 1:length(cigar_strings)) {
-    #if allele #1 is the one with the shortest repeat, some reads should carry a big insertion, and soft-clipped portions are probably associated with insertions
-    if (mean(max_ins_block_lengths) > mean(max_del_block_lengths)) {
-       if (max(max_clipping_block_lengths) > 0) {
-         xlabplot <- "Max DEL (bp)"
-         ylabplot <- "Max INS or Clipping (bp)"
-       } else {
-         xlabplot <- "Max DEL (bp)"
-         ylabplot <- "Max INS (bp)"
-       }
-       score[k, ] <- c(max_del_block_lengths[k], max(max_clipping_block_lengths[k], max_ins_block_lengths[k]))
-    #if allele #1 is the one with the longest repeat, some reads should carry a big deletion, and soft-clipped portions are probably associated with deletions
+    #if allele #1 is the one with the shortest repeat soft-clipped portions are probably associated with insertions
+    if (max(max_clipping_block_lengths_signed) > 0) {
+      score[k, 2] <- max(max_clipping_block_lengths_signed[k], max_ins_block_lengths[k])
     } else {
-      if (max(max_clipping_block_lengths) > 0) {
-         xlabplot <- "Max DEL or Clipping (bp)"
-         ylabplot <- "Max INS (bp)"
-       } else {
-         xlabplot <- "Max DEL (bp)"
-         ylabplot <- "Max INS (bp)"
-       }
-       score[k, ] <- c(max(max_clipping_block_lengths[k], max_del_block_lengths[k]), max_ins_block_lengths[k])
+      score[k, 2] <- max_ins_block_lengths[k]
+    }
+    #if allele #1 is the one with the longest repeat, soft-clipped portions are probably associated with deletions
+    if (min(max_clipping_block_lengths_signed) < 0) {
+      score[k, 1] <- c(max(-max_clipping_block_lengths_signed[k], max_del_block_lengths[k]))
+    } else {
+      score[k, 1] <- max_del_block_lengths[k]
     }
   }
   #add some random noise to avoid IQR = 0 with low coverage
