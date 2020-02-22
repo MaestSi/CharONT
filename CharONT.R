@@ -208,6 +208,8 @@ for (i in 1:length(fasta_files)) {
     names(DNAStringSet_obj_renamed) <- "Allele_number_1_preliminary"
     writeXStringSet(x = DNAStringSet_obj_renamed, filepath = first_allele_preliminary, format = "fasta", width = 20000)
   }
+  DNAStringSet_obj_preliminary <- readDNAStringSet(first_allele_preliminary, "fasta")
+  reference_length <- width(DNAStringSet_obj_preliminary)
   #map all reads to the preliminary Allele #1 in order to identify reads coming from the two alleles
   sam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_first_allele_preliminary.sam")
   system(paste0(MINIMAP2, " -ax map-ont ", first_allele_preliminary, " ", fastq_files[i], " | ", SAMTOOLS, " view -h -F 2308 -o " , sam_file_reads_to_first_allele))
@@ -220,6 +222,7 @@ for (i in 1:length(fasta_files)) {
   }
   #extract reads names and cigar strings
   reads_names <- sam_reads_to_first_allele[, 1]
+  start_mapping_coord <- sam_reads_to_first_allele[, 4]
   cigar_strings <- sam_reads_to_first_allele[, 6]
   score <- matrix(0, nrow = length(cigar_strings), ncol = 2)
   del_block_lengths <- c()
@@ -237,9 +240,17 @@ for (i in 1:length(fasta_files)) {
     ref_symbols_coords <- gregexpr(pattern= "M", text = cigar_string)[[1]]
     num_starting_coords <- gregexpr(pattern = "[0-9]+", text = cigar_string)[[1]]
     nonref_starting_coords <- gregexpr(pattern = "[0-9]+[DIS]+", text = cigar_string)[[1]]
+    match_starting_coords <- gregexpr(pattern = "[0-9]+M+", text = cigar_string)[[1]]
     del_starting_coords <- gregexpr(pattern= "[0-9]+D", text = cigar_string)[[1]]
     ins_starting_coords <- gregexpr(pattern= "[0-9]+I", text = cigar_string)[[1]]
     clipping_starting_coords <- gregexpr(pattern = "[0-9]+[S]+", text = cigar_string)[[1]]
+    mapped_length_curr_read <- 0
+    mapped_length_curr_read_tmp <- c()
+    for (n in 1:length(ref_symbols_coords)) {
+      mapped_length_curr <- as.numeric(substr(x = cigar_string, start = (match_starting_coords[n]), stop = (match_starting_coords[n] + attr(match_starting_coords, "match.length")[n] - 2)))
+      mapped_length_curr_read_tmp <- c(mapped_length_curr_read_tmp, mapped_length_curr)
+    }
+    mapped_length_curr_read <- sum(mapped_length_curr_read_tmp)
     del_block_lengths_curr_read <- c()
     ins_block_lengths_curr_read <- c()
     clipping_block_lengths_curr_read <- c()
@@ -254,6 +265,7 @@ for (i in 1:length(fasta_files)) {
         }
         del_block_lengths <- c(del_block_lengths, sum(del_block_lengths_curr_read))
         max_del_block_lengths <- c(max_del_block_lengths, max(del_block_lengths_curr_read))
+        mapped_length_curr_read <- mapped_length_curr_read + sum(del_block_lengths_curr_read)
       } else {
         del_block_lengths <- c(del_block_lengths, 0)
         max_del_block_lengths <- c(max_del_block_lengths, 0)
@@ -267,6 +279,7 @@ for (i in 1:length(fasta_files)) {
         }
         ins_block_lengths <- c(ins_block_lengths, sum(ins_block_lengths_curr_read))
         max_ins_block_lengths <- c(max_ins_block_lengths, max(ins_block_lengths_curr_read))
+        mapped_length_curr_read <- mapped_length_curr_read + sum(ins_block_lengths_curr_read)
       } else {
         ins_block_lengths <- c(ins_block_lengths, 0)
         max_ins_block_lengths <- c(max_ins_block_lengths, 0)
@@ -275,7 +288,12 @@ for (i in 1:length(fasta_files)) {
       if (clipping_starting_coords[1] != -1) {
         #extract length of soft-clipped bases if they are longer than min_clipped_len
         for (l in 1:length(clipping_starting_coords)) {
-          clipping_block_curr <- as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2)))
+          #if the soft-clipping is at the 5' of the read, subtract the starting coordinate
+          if (clipping_starting_coords[l] == 1) {
+            clipping_block_curr <- abs(as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - start_mapping_coord[k])
+          } else {
+            clipping_block_curr <- abs(as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - (reference_length - mapped_length_curr_read  - start_mapping_coord[k]))
+          }
           if (clipping_block_curr < min_clipped_len) {
             clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, 0)
           } else {
