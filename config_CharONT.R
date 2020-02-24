@@ -29,13 +29,17 @@ kit <- "SQK-LSK109"
 #flowcell chemistry (R9.4/R9.5 chemistry)
 flowcell <- "FLO-MIN106"
 #barcode_kits <- c("EXP-NBD103", "EXP-NBD104", "EXP-NBD114", "EXP-PBC001", "EXP-PBC096", "SQK-16S024", "SQK-LWB001", "SQK-PBK004", "SQK-PCB109", "SQK-RAB201", "SQK-RAB204", "SQK-RBK001", "SQK-RBK004", "SQK-RLB001", "SQK-RPB004", "VSK-VMK001", "VSK-VMK002")
-barcode_kits <- "EXP-NBD104"
-#fast_basecalling_flag <- 1 if you want to use the fast basecalling algorithm; otherwise set fast_basecalling_flag <- 0 if you want to use the accurate but slow one (FLO-MIN106 only)
-fast_basecalling_flag <- 0
+barcode_kits <- c("EXP-NBD104")
+#gpu_basecalling_flag <- 1 if you want to perform GPU-accelerated basecalling
+gpu_basecalling_flag <- 0
+#conf_par_gpu is the name of the config file and the device for GPU-accelerated basecalling in case gpu_basecalling_flag <- 1
+conf_par_gpu <- " -c dna_r9.4.1_450bps_hac.cfg --device 'auto' "
+#fast_basecalling_flag_cpu <- 1 if you want to use the fast basecalling algorithm for R9.4 flow-cell; otherwise set fast_basecalling_flag_cpu <- 0 if you want to use the accurate but slow one
+fast_basecalling_flag_cpu <- 0
 #medaka_model: some possibilities are r941_min_fast_g303, r941_min_high_g303, r941_min_high_g330, r941_min_high_g344; # i) pore type; ii) sequencing device; iii) basecaller variant; iv) basecaller version
 medaka_model <- "r941_min_high_g344"
-#pair_strands_flag <- 1 if, in case a 1d2 kit and FLO-MIN107 flow-cell have been used, you want to perform 1d2 basecalling; otherwise set pair_strands_flag <- 0
-pair_strands_flag <- 0
+#pair_strands_flag_cpu <- 1 if, in case a 1d2 kit and FLO-MIN107 flow-cell have been used, you want to perform 1d2 basecalling; otherwise set pair_strands_flag_cpu <- 0
+pair_strands_flag_cpu <- 0
 #set the maximum number of threads to be used
 num_threads <- 8
 #set length [bp] of PCR primers to be trimmed at both sides of consensus sequences
@@ -43,7 +47,7 @@ primers_length <- 25
 #do_in_silico_pcr <- 1 in case you are not expecting PCR-like amplicons and want to extract on-target trimmed reads; otherwise, set do_insilico_pcr <- 0
 do_in_silico_pcr <- 0
 #pcr_id_thr is the minimum identity threshold that in-silico primers need for annealing
-pcr_id_thr <- 0.75
+pcr_id_thr <- 0.8
 #if do_in_silico_pcr <- 1, extract portion of reads between sequences pcr_silico_primer_one and pcr_silico_primer_two, pcr_silico_primer sequences included
 pcr_silico_primer_one <- "sequence_of_interest"
 pcr_silico_primer_two <- "sequence_of_interest"
@@ -54,7 +58,7 @@ require_two_barcodes_flag <- 0
 #min read quality value
 min_qual <- 7
 #minimum minor allele frequency; if less than min_maf*100% of reads are assigned to Allele #2, the sample is assumed homozygous
-min_maf <- 0.2
+min_maf <- 0.1
 #set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in man); otherwise set haploid_flag <- 0
 haploid_flag <- 0
 #label as candidate outliers reads with score > 3rd_QR + IQR_outliers_coef_precl*IQR or score < 1st_QR - IQR_outliers_coef_precl*IQR
