@@ -222,7 +222,7 @@ for (i in 1:length(fasta_files)) {
   }
   #extract reads names and cigar strings
   reads_names <- sam_reads_to_first_allele[, 1]
-  start_mapping_coord <- sam_reads_to_first_allele[, 4]
+  start_mapping_coord <- as.numeric(sam_reads_to_first_allele[, 4])
   cigar_strings <- sam_reads_to_first_allele[, 6]
   score <- matrix(0, nrow = length(cigar_strings), ncol = 2)
   del_block_lengths <- c()
