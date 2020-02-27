@@ -284,54 +284,53 @@ if (!dir.exists(d2_preprocessing)) {
       } else {
         system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
       }
+      if (!dir.exists(paste0(d2, "/qc"))) {
+        dir.create(paste0(d2, "/qc"))
+        cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), sep = "\n")
+        cat(text = "", file = logfile, sep = "\n", append = TRUE)
+        cat(text = "", sep = "\n")
+        cat(text = "Now performing quality control with PycoQC", file = logfile, sep = "\n", append = TRUE)
+        cat(text = "Now performing quality control with PycoQC", sep = "\n")
+        cat(text = "", file = logfile, sep = "\n", append = TRUE)
+        cat(text = "", sep = "\n")
+        
+        if (skip_demultiplexing_flag == 1) {
+          system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
+        } else {
+          if (pair_strands_flag_cpu == 1) {
+            system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html  --min_pass_qual ", min_qual))
+          } else {
+            system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
+          }
+        }
+      }
+      system(paste0(SEQTK, " seq -A ", d3, "/BC", BC_val_curr, ".fastq > ", d3, "/BC", BC_val_curr, ".fasta"))
+      sequences_pass <- readDNAStringSet(paste0(d3, "/BC", BC_val_curr, ".fasta"), "fasta")
+      ws_pass <- width(sequences_pass)
+      read_length_pass <- ws_pass
+      
+      if (length(grep(x = readLines(paste0( d3, "/BC", BC_val_curr, ".fasta")), pattern = "^>")) < 1) {
+        cat(text = paste0("WARNING: skipping sample BC", BC_val_curr, ", since no reads survived the quality filtering!"), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("WARNING: skipping sample BC", BC_val_curr, ", since no reads survived the quality filtering!"), sep = "\n")
+        cat(text = "\n", file = logfile, append = TRUE)
+        cat(text = "\n")
+        system(paste0("rm ", d3, "/BC", BC_val_curr, ".fastq"))
+        system(paste0("rm ", d3, "/BC", BC_val_curr, ".fasta"))
+        next
+      }
+      cat(text = paste0("Mean read length for sample BC", BC_val_curr, " after quality filtering: ", sprintf("%.0f", mean(ws_pass)), " (", sprintf("%.0f", sd(ws_pass)), ")"), file = logfile, sep = "\n", append = TRUE)
+      cat(text = paste0("Mean read length for sample BC", BC_val_curr, " after quality filtering: ", sprintf("%.0f", mean(ws_pass)), " (", sprintf("%.0f", sd(ws_pass)), ")"), sep = "\n")
+      png(paste0(d2, "/qc/hist_BC", BC_val_curr, "_unfiltered.png"))
+      hist(read_length, main = paste("Read length before quality filtering - sample BC", BC_val_curr), col = "blue", breaks = 100, xlab = "Read length", ylab = "Number of reads")
+      dev.off()
+      png(paste0(d2, "/qc/hist_BC", BC_val_curr, ".png"))
+      hist(read_length_pass, main = paste("Read length after quality filtering - sample BC", BC_val_curr), col = "blue", breaks = 100, xlab = "Read length", ylab = "Number of reads")
+      dev.off()
+      cat(text = "\n", file = logfile, append = TRUE)
     }
   }
 }
-
-if (!dir.exists(paste0(d2, "/qc"))) {
-  dir.create(paste0(d2, "/qc"))
-  cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), file = logfile, sep = "\n", append = TRUE)
-  cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), sep = "\n")
-  cat(text = "", file = logfile, sep = "\n", append = TRUE)
-  cat(text = "", sep = "\n")
-  cat(text = "Now performing quality control with PycoQC", file = logfile, sep = "\n", append = TRUE)
-  cat(text = "Now performing quality control with PycoQC", sep = "\n")
-  cat(text = "", file = logfile, sep = "\n", append = TRUE)
-  cat(text = "", sep = "\n")
-  if (skip_demultiplexing_flag == 1) {
-    system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
-  } else {
-    if (pair_strands_flag_cpu == 1) {
-      system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html  --min_pass_qual ", min_qual))
-    } else {
-      system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
-    }
-  }
-}
-
-system(paste0(SEQTK, " seq -A ", d3, "/BC", BC_val_curr, ".fastq > ", d3, "/BC", BC_val_curr, ".fasta"))
-sequences_pass <- readDNAStringSet(paste0(d3, "/BC", BC_val_curr, ".fasta"), "fasta")
-ws_pass <- width(sequences_pass)
-read_length_pass <- ws_pass
-
-if (length(grep(x = readLines(paste0( d3, "/BC", BC_val_curr, ".fasta")), pattern = "^>")) < 1) {
-  cat(text = paste0("WARNING: skipping sample BC", BC_val_curr, ", since no reads survived the quality filtering!"), file = logfile, sep = "\n", append = TRUE)
-  cat(text = paste0("WARNING: skipping sample BC", BC_val_curr, ", since no reads survived the quality filtering!"), sep = "\n")
-  cat(text = "\n", file = logfile, append = TRUE)
-  cat(text = "\n")
-  system(paste0("rm ", d3, "/BC", BC_val_curr, ".fastq"))
-  system(paste0("rm ", d3, "/BC", BC_val_curr, ".fasta"))
-  next
-}
-cat(text = paste0("Mean read length for sample BC", BC_val_curr, " after quality filtering: ", sprintf("%.0f", mean(ws_pass)), " (", sprintf("%.0f", sd(ws_pass)), ")"), file = logfile, sep = "\n", append = TRUE)
-cat(text = paste0("Mean read length for sample BC", BC_val_curr, " after quality filtering: ", sprintf("%.0f", mean(ws_pass)), " (", sprintf("%.0f", sd(ws_pass)), ")"), sep = "\n")
-png(paste0(d2, "/qc/hist_BC", BC_val_curr, "_unfiltered.png"))
-hist(read_length, main = paste("Read length before quality filtering - sample BC", BC_val_curr), col = "blue", breaks = 100, xlab = "Read length", ylab = "Number of reads")
-dev.off()
-png(paste0(d2, "/qc/hist_BC", BC_val_curr, ".png"))
-hist(read_length_pass, main = paste("Read length after quality filtering - sample BC", BC_val_curr), col = "blue", breaks = 100, xlab = "Read length", ylab = "Number of reads")
-dev.off()
-cat(text = "\n", file = logfile, append = TRUE)
 
 BC_files_bn <-  list.files(path = d3, pattern = "^BC\\d+\\.fasta$")
 BC_files_bn_fq <- list.files(path = d3, pattern = "^BC\\d+\\.fastq$")
