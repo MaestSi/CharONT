@@ -22,7 +22,7 @@ chmod 755 Miniconda3-latest-Linux-x86_64.sh
 
 Then, after completing _CharONT_ installation, set the _MINICONDA_DIR_ variable in **config_CharONT.R** to the full path to miniconda3 directory.
 
-* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v3.4.4.
+* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v3.4.5.
 If you don't have [Guppy](https://community.nanoporetech.com/downloads) installed, choose an appropriate version and install it.
 For example, you could download and unpack the archive with:
 ```
@@ -54,6 +54,15 @@ Then, you can open the **config_CharONT.R** file with a text editor and set the 
 <p align="center">
   <img src="Figures/CharONT_pipeline_flowchart.png" alt="drawing" width="700" title="CharONT_pipeline_flowchart">
 </p>
+
+**Identification of reads from the two alleles**
+
+After creating a preliminary consensus sequence for Allele #1, all reads are mapped to it and, based on the CIGAR string, the biggest DEL and INS are identified for each read, resulting in a bidimensional Score. At this point, reads with either component of the Score deviating from the 1st or 3rd inter quartile range (IQR) for more than  _IQR\_outliers\_coef\_precl_\*IQR are labelled as candidate outliers, and are excluded from the k-means clustering. After clustering, IQR for both components of the Score is computed within each cluster, and reads with either component of the Score deviating from the 1st or 3rd IQR for more than _IQR\_outliers\_coef_\*IQR are labelled as outliers. Scores are plotted so that the user may tune _IQR\_outliers\_coef\_precl_ and _IQR\_outliers\_coef_ parameters according to their preferences, based on visual inspection of \<sample_name\>\_reads\_scores.png. In the provided example, reads from Allele #2 show 400bp INS with respect to Allele #1. Notably, one read with 1000bp INS is identified, which may indicate a somatic variant.
+
+<p align="center">
+  <img src="Figures/Reads_scores_example.png" alt="drawing" width="400" title="Reads_scores_example">
+</p>
+
 
 ## Usage
 
@@ -88,7 +97,7 @@ Note: modify **config_CharONT.R** before running; the script runs the full pipel
 Input
 * \<fast5_dir\>: directory containing raw fast5 files
 
-Outputs (saved in \<fast5_dir\>_analysis/analysis):
+Outputs (saved in \<fast5_dir\>\_analysis/analysis):
 
 * \<"sample_name"\_first_allele.fasta\>: consensus sequence for first allele in fasta format
 * \<"sample_name"\_first_allele.fasta."trf scores".html\>: Tandem Repeat Finder report for first allele sequence
@@ -96,13 +105,13 @@ Outputs (saved in \<fast5_dir\>_analysis/analysis):
 * \<"sample_name"\_second_allele.fasta."trf scores".html\>: Tandem Repeat Finder report for second allele sequence
 * \<"sample_name"\>: directory including intermediate files
 
-Outputs (saved in \<fast5_dir\>_analysis/qc):
+Outputs (saved in \<fast5_dir\>\_analysis/qc):
 * Read length distributions and pycoQC report
 
-Outputs (saved in \<fast5_dir\>_analysis/basecalling):
+Outputs (saved in \<fast5_dir\>\_analysis/basecalling):
 * Temporary files for basecalling
 
-Outputs (saved in \<fast5_dir\>_analysis/preprocessing):
+Outputs (saved in \<fast5_dir\>\_analysis/preprocessing):
 * Temporary files for demultiplexing, filtering based on read length and adapters trimming
 
 **Extract_amplicons.sh**
@@ -121,7 +130,6 @@ Outputs:
 * \<"sample_name"\_trimmed.fastq\>: fastq file containing amplicon-like sequences extracted from \<"sample_name".fastq\> based on \<primer_sequence_one\> and \<primer_sequence_two\> sequences
 * \<"sample_name"\_in_silico_pcr_one.sam\>: sam file containing alignments between \<primer_sequence_one\> and \<fastq_reads\>
 * \<"sample_name"\_in_silico_pcr_two.sam\>: sam file containing alignments between \<primer_sequence_two\> and \<fastq_reads\>
- 
 
 ## Auxiliary scripts
 
