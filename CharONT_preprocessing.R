@@ -194,13 +194,13 @@ if (!dir.exists(d2_basecalling)) {
     system(paste0(basecaller, " -r -i ", d1, " --pt_scaling true -s ", d2_basecalling, " ", conf_par_gpu, " --disable_pings"))
   } else {
     if (fast_basecalling_flag_cpu == 1) {
-      system(paste0(basecaller, " -r -i ", d1, " --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " -c dna_r9.4.1_450bps_fast.cfg --pt_scaling true -s ", d2_basecalling, " --disable_pings"))
+      system(paste0(basecaller, " -r -i ", d1, " --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " -c dna_r9.4.1_450bps_fast.cfg -s ", d2_basecalling, " --disable_pings"))
     } else {
-      system(paste0(basecaller, " -r -i ", d1, " --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " --flowcell ", flowcell, " --kit ", kit, " --pt_scaling true -s ", d2_basecalling, " --disable_pings"))
+      system(paste0(basecaller, " -r -i ", d1, " --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " --flowcell ", flowcell, " --kit ", kit, " -s ", d2_basecalling, " --disable_pings"))
     }
   }
   if (gpu_basecalling_flag !=1 && pair_strands_flag_cpu == 1) {
-    system(paste0(basecaller, " -r -i ", d1, " --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " --flowcell ", flowcell, " --kit ", kit, " --pt_scaling true --fast5_out -s ", d2_basecalling, " --disable_pings"))
+    system(paste0(basecaller, " -r -i ", d1, " --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " --flowcell ", flowcell, " --kit ", kit, " --fast5_out -s ", d2_basecalling, " --disable_pings"))
     system(paste0(basecaller_1d2, " -r -i ", d2_basecalling, "/workspace --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " --config dna_r9.5_450bps_1d2_raw.cfg -f ", d2_basecalling, "/sequencing_summary.txt -s ", d2, "/basecalling_1d2 --disable_pings"))
     d2_basecalling <- paste0(d2, "/basecalling_1d2")
   }
