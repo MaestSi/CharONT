@@ -191,7 +191,7 @@ if (!dir.exists(d2_basecalling)) {
   cat(text = paste0("Basecalling started at ", date()), sep = "\n")
   num_threads_caller <- round(num_threads/4)
   if (gpu_basecalling_flag == 1) {
-    system(paste0(basecaller, " -r -i ", d1, " --pt_scaling true -s ", d2_basecalling, " ", conf_par_gpu, " --disable_pings"))
+    system(paste0(basecaller, " -r -i ", d1, " -s ", d2_basecalling, " ", conf_par_gpu, " --disable_pings"))
   } else {
     if (fast_basecalling_flag_cpu == 1) {
       system(paste0(basecaller, " -r -i ", d1, " --cpu_threads_per_caller ", num_threads_caller, " --num_callers 4", " -c dna_r9.4.1_450bps_fast.cfg -s ", d2_basecalling, " --disable_pings"))
