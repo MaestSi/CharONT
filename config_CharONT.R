@@ -36,8 +36,8 @@ gpu_basecalling_flag <- 0
 conf_par_gpu <- " -c dna_r9.4.1_450bps_hac.cfg --device 'auto' "
 #fast_basecalling_flag_cpu <- 1 if you want to use the fast basecalling algorithm for R9.4 flow-cell; otherwise set fast_basecalling_flag_cpu <- 0 if you want to use the accurate but slow one
 fast_basecalling_flag_cpu <- 0
-#medaka_model: some possibilities are r941_min_fast_g303, r941_min_high_g303, r941_min_high_g330, r941_min_high_g344; # i) pore type; ii) sequencing device; iii) basecaller variant; iv) basecaller version
-medaka_model <- "r941_min_high_g344"
+#medaka_model: some possibilities are r941_min_high_g330, r941_min_high_g344, r941_min_high_g351; # i) pore type; ii) sequencing device; iii) basecaller variant; iv) basecaller version
+medaka_model <- "r941_min_high_g351"
 #pair_strands_flag_cpu <- 1 if, in case a 1d2 kit and FLO-MIN107 flow-cell have been used, you want to perform 1d2 basecalling; otherwise set pair_strands_flag_cpu <- 0
 pair_strands_flag_cpu <- 0
 #set the maximum number of threads to be used
@@ -58,13 +58,13 @@ require_two_barcodes_flag <- 0
 #min read quality value
 min_qual <- 7
 #minimum minor allele frequency; if less than min_maf*100% of reads are assigned to Allele #2, the sample is assumed homozygous
-min_maf <- 0.1
-#set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in man); otherwise set haploid_flag <- 0
+min_maf <- 0.2
+#set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in male); otherwise set haploid_flag <- 0
 haploid_flag <- 0
 #label as candidate outliers reads with score > 3rd_QR + IQR_outliers_coef_precl*IQR or score < 1st_QR - IQR_outliers_coef_precl*IQR
 IQR_outliers_coef_precl <- 3
 #label as outliers reads with score > 3rd_QR + IQR_outliers_coef*IQR or score < 1st_QR - IQR_outliers_coef*IQR; IQR is computed within each cluster
-IQR_outliers_coef <- 2
+IQR_outliers_coef <- 3
 #set fast_alignment_flag <- 1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag <- 0
 fast_alignment_flag <- 1
 ########################################################################################################
