@@ -55,6 +55,10 @@ if (!exists("min_qual")) {
   min_qual <- 7
 }
 
+if (!exists("min_seq_length")) {
+  min_seq_length <- 0
+}
+
 if (!exists("do_in_silico_pcr")) {
   do_in_silico_pcr <- 0
 }
@@ -248,6 +252,29 @@ if (!dir.exists(d2_preprocessing)) {
   cat(text = paste0("Number of basecalled reads: ", num_reads_tot), sep = "\n")  
   cat(text = "", file = logfile, sep = "\n", append = TRUE)
   cat(text = "", sep = "\n")
+  
+  if (!dir.exists(paste0(d2, "/qc"))) {
+    dir.create(paste0(d2, "/qc"))
+    cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), file = logfile, sep = "\n", append = TRUE)
+    cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), sep = "\n")
+    cat(text = "", file = logfile, sep = "\n", append = TRUE)
+    cat(text = "", sep = "\n")
+    cat(text = "Now performing quality control with PycoQC", file = logfile, sep = "\n", append = TRUE)
+    cat(text = "Now performing quality control with PycoQC", sep = "\n")
+    cat(text = "", file = logfile, sep = "\n", append = TRUE)
+    cat(text = "", sep = "\n")
+    
+    if (skip_demultiplexing_flag == 1) {
+      system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
+    } else {
+      if (pair_strands_flag_cpu == 1) {
+        system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html  --min_pass_qual ", min_qual))
+      } else {
+        system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
+      }
+    }
+  }
+  
   demu_files <- list.files(path = d2_preprocessing, pattern = "BC", full.names = TRUE)
   for (i in 1:length(demu_files)) {
     BC_val_curr <- substr(x = basename(demu_files[i]), start = 3, stop = 4)
@@ -279,32 +306,13 @@ if (!dir.exists(d2_preprocessing)) {
         system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_two, " literal=", pcr_silico_primer_two, " qin=33 cutoff=", pcr_id_thr))
         cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
         cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), sep = "\n")
-        system(paste0(CUTPRIMERS, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", d3, "/BC", BC_val_curr, ".fastq sam1=", in_silico_pcr_sam_one, " sam2=", in_silico_pcr_sam_two, " qin=33 fake=f include=t fixjunk"))
+        system(paste0(CUTPRIMERS, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq sam1=", in_silico_pcr_sam_one, " sam2=", in_silico_pcr_sam_two, " qin=33 fake=f include=t fixjunk"))
+        system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq | ", NANOFILT, " -l ", min_seq_length, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
         cat(text = "\n", file = logfile, append = TRUE)
       } else {
-        system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
+        system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -l ", min_seq_length, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
       }
-      if (!dir.exists(paste0(d2, "/qc"))) {
-        dir.create(paste0(d2, "/qc"))
-        cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), file = logfile, sep = "\n", append = TRUE)
-        cat(text = paste0("Creating folder: ", d2, "/qc, which is going to include stats about the sequencing run"), sep = "\n")
-        cat(text = "", file = logfile, sep = "\n", append = TRUE)
-        cat(text = "", sep = "\n")
-        cat(text = "Now performing quality control with PycoQC", file = logfile, sep = "\n", append = TRUE)
-        cat(text = "Now performing quality control with PycoQC", sep = "\n")
-        cat(text = "", file = logfile, sep = "\n", append = TRUE)
-        cat(text = "", sep = "\n")
-        
-        if (skip_demultiplexing_flag == 1) {
-          system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
-        } else {
-          if (pair_strands_flag_cpu == 1) {
-            system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html  --min_pass_qual ", min_qual))
-          } else {
-            system(paste0(PYCOQC, " -f ", d2_basecalling, "/sequencing_summary.txt -b ", d2_preprocessing, "/barcoding_summary.txt -o ", d2, "/qc/pycoQC_report.html --min_pass_qual ", min_qual))
-          }
-        }
-      }
+      
       system(paste0(SEQTK, " seq -A ", d3, "/BC", BC_val_curr, ".fastq > ", d3, "/BC", BC_val_curr, ".fasta"))
       sequences_pass <- readDNAStringSet(paste0(d3, "/BC", BC_val_curr, ".fasta"), "fasta")
       ws_pass <- width(sequences_pass)

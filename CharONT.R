@@ -583,8 +583,22 @@ for (i in 1:length(fasta_files)) {
   }
   if (num_reads_first_allele < 3 || allelic_ratio_first < min_maf) {
     skip_first_allele_flag <- 1
+    if (allelic_ratio_first > min_maf) {
+      first_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_first_allele_untrimmed.fasta")
+      first_allele <- paste0(analysis_dir, "/", sample_name, "_first_allele.fasta")
+      system(paste0("head -n2 ", first_allele_reads_fa, " > ", first_allele_untrimmed))
+      system(paste0(SEQTK, " trimfq ", first_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
+      system(paste0(TRF, " ", first_allele, " 2 3 5 80 10 14 500"))
+    }
   } else if (num_reads_second_allele < 3 || allelic_ratio_second < min_maf) {
     skip_second_allele_flag <- 1
+    if (allelic_ratio_second > min_maf) {
+      second_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_second_allele_untrimmed.fasta")
+      second_allele <- paste0(analysis_dir, "/", sample_name, "_second_allele.fasta")
+      system(paste0("head -n2 ", second_allele_reads_fa, " > ", second_allele_untrimmed))
+      system(paste0(SEQTK, " trimfq ", second_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
+      system(paste0(TRF, " ", second_allele, " 2 3 5 80 10 14 500"))
+    }
   } 
   
   target_reads_consensus <- TRC
