@@ -588,6 +588,7 @@ for (i in 1:length(fasta_files)) {
       first_allele <- paste0(analysis_dir, "/", sample_name, "_first_allele.fasta")
       system(paste0("head -n2 ", first_allele_reads_fa, " > ", first_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", first_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
+      setwd(analysis_dir)
       system(paste0(TRF, " ", first_allele, " 2 3 5 80 10 14 500"))
     }
   } else if (num_reads_second_allele < 3 || allelic_ratio_second < min_maf) {
@@ -597,6 +598,7 @@ for (i in 1:length(fasta_files)) {
       second_allele <- paste0(analysis_dir, "/", sample_name, "_second_allele.fasta")
       system(paste0("head -n2 ", second_allele_reads_fa, " > ", second_allele_untrimmed))
       system(paste0(SEQTK, " trimfq ", second_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
+      setwd(analysis_dir)
       system(paste0(TRF, " ", second_allele, " 2 3 5 80 10 14 500"))
     }
   } 
@@ -652,7 +654,7 @@ for (i in 1:length(fasta_files)) {
       cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
       system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_first, " ", polishing_reads_fq_first, " > ", paf_file_first))
       system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq_first, " ", paf_file_first, " ", draft_consensus_first, " > ", racon_consensus_first))
-      if (length(which(readLines(racon_consensus_first) == "") == 0)) {
+      if (length(which(readLines(racon_consensus_first) == "")) == 0) {
         cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #1"), sep = "\n")
         cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #1"),  file = logfile, sep = "\n", append = TRUE)
         system(paste0("cp ", draft_consensus_first, " ", racon_consensus_first))
@@ -727,7 +729,7 @@ for (i in 1:length(fasta_files)) {
       cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
       system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_second, " ", polishing_reads_fq_second, " > ", paf_file_second))
       system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq_second, " ", paf_file_second, " ", draft_consensus_second, " > ", racon_consensus_second))
-      if (length(which(readLines(racon_consensus_second) == "") == 0)) {
+      if (length(which(readLines(racon_consensus_second) == "")) == 0) {
         cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #2"), sep = "\n")
         cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #2"),  file = logfile, sep = "\n", append = TRUE)
         system(paste0("cp ", draft_consensus_second, " ", racon_consensus_second))
