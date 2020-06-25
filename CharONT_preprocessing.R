@@ -291,9 +291,9 @@ if (!dir.exists(d2_preprocessing)) {
       read_length <- ws
       cat(text = paste0("Mean read length (stdev) for sample BC", BC_val_curr, ": ", sprintf("%.0f", mean(ws)), " (", sprintf("%.0f", sd(ws)), ")"), file = logfile, sep = "\n", append = TRUE)
       cat(text = paste0("Mean read length (stdev) for sample BC", BC_val_curr, ": ", sprintf("%.0f", mean(ws)), " (", sprintf("%.0f", sd(ws)), ")"), sep = "\n")
-      cat(text = paste0("Now filtering out reads with quality lower than ", min_qual, " for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
-      cat(text = paste0("Now filtering out reads with quality lower than ", min_qual, " for sample BC", BC_val_curr), sep = "\n")
       if (do_in_silico_pcr == 1) {
+        cat(text = paste0("Now filtering out reads with quality lower than ", min_qual, " for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("Now filtering out reads with quality lower than ", min_qual, " for sample BC", BC_val_curr), sep = "\n")
         system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq"))
         system(paste0(SEQTK, " seq -A ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq > ", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fasta"))
         in_silico_pcr_sam_one <- paste0(d2_preprocessing, "/BC", BC_val_curr, "_pcr_primer_one.sam")
@@ -304,12 +304,16 @@ if (!dir.exists(d2_preprocessing)) {
         cat(text = paste0("Looking for pcr_silico_primer_two for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
         cat(text = paste0("Looking for pcr_silico_primer_two for sample BC", BC_val_curr), sep = "\n")
         system(paste0(MSA, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", in_silico_pcr_sam_two, " literal=", pcr_silico_primer_two, " qin=33 cutoff=", pcr_id_thr))
-        cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
-        cat(text = paste0("Extracting in-silico PCR product for sample BC", BC_val_curr), sep = "\n")
+        cat(text = paste0("Extracting in-silico PCR products for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("Extracting in-silico PCR products for sample BC", BC_val_curr), sep = "\n")
         system(paste0(CUTPRIMERS, " in=", d2_preprocessing, "/BC", BC_val_curr, "_tmp2.fastq out=", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq sam1=", in_silico_pcr_sam_one, " sam2=", in_silico_pcr_sam_two, " qin=33 fake=f include=t fixjunk"))
-        system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq | ", NANOFILT, " -l ", min_seq_length, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
+        cat(text = paste0("Now filtering out in-silico PCR products shorter than ", min_seq_length, " for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("Now filtering out in-silico PCR products shorter than ", min_seq_length, " for sample BC", BC_val_curr), sep = "\n")
+        system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq | ", NANOFILT, " -l ", min_seq_length, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
         cat(text = "\n", file = logfile, append = TRUE)
       } else {
+        cat(text = paste0("Now filtering out reads shorter than ", min_seq_length, " and with quality lower than ", min_qual, " for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("Now filtering out reads shorter than ", min_seq_length, " and with quality lower than ", min_qual, " for sample BC", BC_val_curr), sep = "\n")
         system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -l ", min_seq_length, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
       }
       
