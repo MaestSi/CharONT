@@ -312,8 +312,8 @@ if (!dir.exists(d2_preprocessing)) {
         system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp3.fastq | ", NANOFILT, " -l ", min_seq_length, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
         cat(text = "\n", file = logfile, append = TRUE)
       } else {
-        cat(text = paste0("Now filtering out reads shorter than ", min_seq_length, " and with quality lower than ", min_qual, " for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
-        cat(text = paste0("Now filtering out reads shorter than ", min_seq_length, " and with quality lower than ", min_qual, " for sample BC", BC_val_curr), sep = "\n")
+        cat(text = paste0("Now filtering out reads shorter than ", min_seq_length, " bp and with quality lower than ", min_qual, " for sample BC", BC_val_curr), file = logfile, sep = "\n", append = TRUE)
+        cat(text = paste0("Now filtering out reads shorter than ", min_seq_length, " bp and with quality lower than ", min_qual, " for sample BC", BC_val_curr), sep = "\n")
         system(paste0("cat ", d2_preprocessing, "/BC", BC_val_curr, "_tmp1.fastq | ", NANOFILT, " -l ", min_seq_length, " -q ", min_qual, " --logfile ", d2_preprocessing, "/BC", BC_val_curr, "_NanoFilt.log > ", d3, "/BC", BC_val_curr, ".fastq"))
       }
       
