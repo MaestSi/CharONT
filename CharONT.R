@@ -231,7 +231,7 @@ for (i in 1:length(fasta_files)) {
   sam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_first_allele_preliminary.sam")
   bam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_first_allele_preliminary.bam")
   system(paste0(MINIMAP2, " -ax map-ont ", first_allele_preliminary, " ", fastq_files[i], " | ", SAMTOOLS, " view -h -F 2308 -o " , sam_file_reads_to_first_allele))
-  system(paste0(SAMTOOLS, " view -hSb " sam_file_reads_to_first_allele, " | ", SAMTOOLS, " sort -o ", bam_file_reads_to_first_allele))
+  system(paste0(SAMTOOLS, " view -hSb ", sam_file_reads_to_first_allele, " | ", SAMTOOLS, " sort -o ", bam_file_reads_to_first_allele))
   sam_reads_to_first_allele_tmp <- read.table(file = sam_file_reads_to_first_allele, fill = TRUE, comment.char = "@", stringsAsFactors = FALSE, sep = "\t", quote = "")
   ind_rm <- grep(pattern = "NM", x =  sam_reads_to_first_allele_tmp[, 1])
   if (length(ind_rm) > 0) {
