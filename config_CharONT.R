@@ -57,8 +57,6 @@ skip_demultiplexing_flag <- 0
 require_two_barcodes_flag <- 0
 #min read quality value
 min_qual <- 7
-#min_seq_length is the minimum sequence length to be retained (after optional in-silico PCR)
-min_seq_length <- 0
 #minimum minor allele frequency; if less than min_maf*100% of reads are assigned to Allele #2, the sample is assumed homozygous
 min_maf <- 0.2
 #set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in male); otherwise set haploid_flag <- 0
@@ -69,6 +67,20 @@ IQR_outliers_coef_precl <- 3
 IQR_outliers_coef <- 3
 #set fast_alignment_flag <- 1 if you want to perform fast multiple sequence alignment; otherwise set fast_alignment_flag <- 0
 fast_alignment_flag <- 1
+#target reads for creating consensus
+TRC <- 200
+#target reads for polishing
+TRP <- 200
+#minimum number of soft-clipped bases to be considered as a DEL or INS
+min_clipped_len <- 50
+#identity threshold for clustering preliminary allele assembly
+THR <- 0.85
+#minimum fraction of aligned reads supporting a basis for including it in the preliminary consensus
+PLUR <- 0.15
+#maximum number of reads subsampled for preliminary allele assembly
+max_num_reads_clustering <- 500
+#sd_noise_score is the standard deviation of gaussian-distributed noise with zero mean added to score
+sd_noise_score <- 0.2
 ########################################################################################################
 PIPELINE_DIR <- "/path/to/CharONT"
 #MINICONDA DIR

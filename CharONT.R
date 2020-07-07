@@ -79,10 +79,33 @@ if (!exists("fast_alignment_flag")) {
   fast_alignment_flag <- 1
 }
 
-#target reads for creating consensus
-TRC <- 200
-#target reads for polishing
-TRP <- 200
+if (!exists("min_clipped_len")) {
+  min_clipped_len <- 50
+}
+
+if (!exists("TRC")) {
+  TRC <- 50
+}
+
+if (!exists("TRP")) {
+  TRP <- 200
+}
+
+if (!exists("THR")) {
+  THR <- 0.85
+}
+
+if (!exists("PLUR")) {
+  PLUR <- 0.15
+}
+
+if (!exists("max_num_reads_clustering")) {
+  max_num_reads_clustering <- 500
+}
+
+if (!exists("sd_noise_score")) {
+  sd_noise_score <- 0.2
+}
 
 logfile <- paste0(analysis_dir, "/logfile.txt")
 
@@ -137,16 +160,10 @@ if (haploid_flag == 1) {
 
 target_reads_consensus <- TRC
 target_reads_polishing <- TRP
-#threshold for clustering preliminary allele assembly
-THR <- 0.85
 #minimum number of aligned bases at a specific position to include the base in draft consensus
-plurality_value <- 0.15*target_reads_consensus
-#maximum number of reads subsampled for preliminary allele assembly
-max_num_reads_clustering <- 500
+plurality_value <- PLUR*target_reads_consensus
 #seed for subsampling
 seed <- 1
-#sd_noise_score is the standard deviation of gaussian-distributed noise with zero mean added to score
-sd_noise_score <- 0.2
 
 #cycle over fasta files
 for (i in 1:length(fasta_files)) {
@@ -189,7 +206,7 @@ for (i in 1:length(fasta_files)) {
     if (num_reads_mac_first_preliminary < target_reads_consensus) {
       target_reads_consensus <- num_reads_mac_first_preliminary
     }
-    plurality_value <- 0.15*target_reads_consensus
+    plurality_value <- PLUR*target_reads_consensus
     sequences <- readDNAStringSet(fasta_files[i], "fasta")
     ws <- width(sequences)
     amplicon_length <- ceiling(mean(ws))
@@ -212,7 +229,9 @@ for (i in 1:length(fasta_files)) {
   reference_length <- width(DNAStringSet_obj_preliminary)
   #map all reads to the preliminary Allele #1 in order to identify reads coming from the two alleles
   sam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_first_allele_preliminary.sam")
+  bam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_first_allele_preliminary.bam")
   system(paste0(MINIMAP2, " -ax map-ont ", first_allele_preliminary, " ", fastq_files[i], " | ", SAMTOOLS, " view -h -F 2308 -o " , sam_file_reads_to_first_allele))
+  system(paste0(SAMTOOLS, " view -hSb " sam_file_reads_to_first_allele, " | ", SAMTOOLS, " sort -o ", bam_file_reads_to_first_allele))
   sam_reads_to_first_allele_tmp <- read.table(file = sam_file_reads_to_first_allele, fill = TRUE, comment.char = "@", stringsAsFactors = FALSE, sep = "\t", quote = "")
   ind_rm <- grep(pattern = "NM", x =  sam_reads_to_first_allele_tmp[, 1])
   if (length(ind_rm) > 0) {
@@ -231,7 +250,6 @@ for (i in 1:length(fasta_files)) {
   max_ins_block_lengths <- c()
   max_clipping_block_lengths <- c()
   max_clipping_block_lengths_signed <- c()
-  min_clipped_len <- 500
   
   #cycle over reads and extract for each read the longest portion non matching the reference
   for (k in 1:length(cigar_strings)) {
@@ -619,7 +637,7 @@ for (i in 1:length(fasta_files)) {
       cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"), sep = "\n")
       cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"),  file = logfile, sep = "\n", append = TRUE)
     } 
-    plurality_value <- 0.15*target_reads_consensus
+    plurality_value <- PLUR*target_reads_consensus
     draft_consensus_first_tmp1 <- paste0(sample_dir, "/", sample_name, "_draft_first_allele_tmp1.fasta")
     draft_consensus_first_tmp2 <- paste0(sample_dir, "/", sample_name, "_draft_first_allele_tmp2.fasta")
     draft_consensus_first <- paste0(sample_dir, "/", sample_name, "_draft_first_allele.fasta")
@@ -694,7 +712,7 @@ for (i in 1:length(fasta_files)) {
       cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"), sep = "\n")
       cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"),  file = logfile, sep = "\n", append = TRUE)
     } 
-    plurality_value <- 0.15*target_reads_consensus
+    plurality_value <- PLUR*target_reads_consensus
     draft_consensus_second_tmp1 <- paste0(sample_dir, "/", sample_name, "_draft_second_allele_tmp1.fasta")
     draft_consensus_second_tmp2 <- paste0(sample_dir, "/", sample_name, "_draft_second_allele_tmp2.fasta")
     draft_consensus_second <- paste0(sample_dir, "/", sample_name, "_draft_second_allele.fasta")
