@@ -116,7 +116,7 @@ Usage: Extract_amplicons.sh \<"sample_name".fastq\> \<primer_sequence_one\> \<pr
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running.
 
 Inputs:
-* \<"sample_name".fastq\>: fastq file containing reads that need filtering and trimming to look like PCR amplicons
+* \<"sample_name".fastq\>: fastq file containing reads that need filtering and trimming to look like amplicons
 * \<primer_sequence_one\>: sequence of first _in-silico_ PCR primer to look for, flanking the region of interest
 * \<primer_sequence_two\>: sequence of second _in-silico_ PCR primer to look for, flanking the region of interest
 * \<pcr_id_thr>: minimum identity threshold that _in-silico_ PCR primers need for annealing
@@ -125,6 +125,22 @@ Outputs:
 * \<"sample_name"\_trimmed.fastq\>: fastq file containing amplicon-like sequences extracted from \<"sample_name".fastq\> based on \<primer_sequence_one\> and \<primer_sequence_two\> sequences
 * \<"sample_name"\_in_silico_pcr_one.sam\>: sam file containing alignments between \<primer_sequence_one\> and \<fastq_reads\>
 * \<"sample_name"\_in_silico_pcr_two.sam\>: sam file containing alignments between \<primer_sequence_two\> and \<fastq_reads\>
+
+**Extract_Samplix_alignments.sh**
+
+Usage: Extract_Samplix_alignments.sh \<"sample_name".fastq\> \<reference_genome.fasta\> \<target_file.bed\>
+
+Note: Activate the virtual environment with ```source activate CharONT_env``` before running; moreover, pcrclipreads.jar and samextractclip.jar from jvarkit should be installed.
+
+Inputs:
+* \<"sample_name".fastq\>: fastq file containing reads that need filtering and trimming and chimera removal to look like amplicons
+* \<reference_genome.fasta\>: fasta file with reference genome (e.g. hg38 human genome)
+* \<target_file.bed\>: bed file with the coordinates of the target of interest and the flanking regions
+
+Outputs:
+* \<"sample_name"\_target_extracted.fastq\>: fastq file containing amplicon-like sequences in forward orientation extracted from \<"sample_name".fastq\> based on the bed file coordinates
+* \<Samplix_reads_extraction\>: directory containing temporary files
+
 
 ## Auxiliary scripts
 
