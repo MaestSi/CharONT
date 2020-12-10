@@ -62,4 +62,4 @@ cat $FASTQ_target_clipped | grep "clipped" | sed 's/^@//g' > $FASTQ_target_clipp
 $SEQTK subseq $FASTQ_target_clipped $FASTQ_target_clipped_ids | $SEQTK rename - $SAMPLE_NAME"_" > $FASTQ_extracted
 #create a tmp directory and move temporary file to it
 mkdir $WORKING_DIR"/Samplix_reads_extraction"
-mv $BAM_target $FASTQ_forward $BAM_target_forward $SAM_target_clipped $BAM_target_clipped $FASTQ_target_clipped $FASTQ_target_clipped_ids $FASTQ_extracted *in_silico_pcr_* $WORKING_DIR"/Samplix_reads_extraction"
+mv $BAM_target $FASTQ_forward $BAM_target_forward $SAM_target_clipped $BAM_target_clipped $FASTQ_target_clipped $FASTQ_target_clipped_ids $WORKING_DIR"/Samplix_reads_extraction"
