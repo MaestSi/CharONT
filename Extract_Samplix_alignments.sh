@@ -24,7 +24,6 @@ BED=$3
 
 PCR_CLIP_READS="java -jar /path/to/jvarkit/dist/pcrclipreads.jar" #to be installed
 SAM_EXTRACT_CLIP="java -jar /path/to/jvarkit/dist/samextractclip.jar" #to be installed
-EXTRACT_AMPLICONS="/path/to/Extract_amplicons.sh"
 SEQTK=seqtk
 MINIMAP2=minimap2
 SAMTOOLS=samtools
@@ -61,5 +60,6 @@ $SAMTOOLS view -hSb $SAM_target_clipped | $SAMTOOLS sort -o $BAM_target_clipped
 cat $FASTQ_target_clipped | grep "clipped" | sed 's/^@//g' > $FASTQ_target_clipped_ids
 #extract the portions of interest of reads
 $SEQTK subseq $FASTQ_target_clipped $FASTQ_target_clipped_ids | $SEQTK rename - $SAMPLE_NAME"_" > $FASTQ_extracted
+#create a tmp directory and move temporary file to it
 mkdir $WORKING_DIR"/Samplix_reads_extraction"
 mv $BAM_target $FASTQ_forward $BAM_target_forward $SAM_target_clipped $BAM_target_clipped $FASTQ_target_clipped $FASTQ_target_clipped_ids $FASTQ_extracted *in_silico_pcr_* $WORKING_DIR"/Samplix_reads_extraction"
