@@ -134,8 +134,8 @@ if (length(grep(pattern = medaka_model, x = available_medaka_models)) > 0) {
   cat(text = paste0("Medaka model: ", medaka_model), file = logfile, sep = "\n", append = TRUE)
   cat(text = "\n", file = logfile, append = TRUE)
 } else {
-  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g351 was selected"), sep = "\n")
-  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g351 was selected"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g360 was selected"), sep = "\n")
+  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g360 was selected"), file = logfile, sep = "\n", append = TRUE)
   cat(text = "\n", file = logfile, append = TRUE)  
   medaka_model <- "r941_min_high_g360"
 }
