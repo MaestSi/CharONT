@@ -55,7 +55,7 @@ Then, you can open the **config_CharONT.R** file with a text editor and set the 
 After creating a preliminary consensus sequence for Allele #1, all reads are mapped to it and, based on the CIGAR string, the biggest DEL and INS are identified for each read, resulting in a bidimensional Score. At this point, reads with either component of the Score deviating from the 1st or 3rd inter quartile range (IQR) for more than  _IQR\_outliers\_coef\_precl_\*IQR are labelled as candidate outliers, and are excluded from the k-means clustering. After clustering, IQR is computed within each cluster for both components of the Score, and reads with either component deviating from the 1st or 3rd IQR for more than _IQR\_outliers\_coef_\*IQR are labelled as outliers. Scores are plotted so that the user may tune _IQR\_outliers\_coef\_precl_ and _IQR\_outliers\_coef_ parameters according to their preferences, based on visual inspection of \<sample_name\>\_reads\_scores.png. In the provided example, reads from Allele #2 show 400bp INS with respect to Allele #1. Notably, one read with 1000bp INS is identified, which may indicate a somatic variant.
 
 <p align="center">
-  <img src="Figures/Reads_scores_example.png" alt="drawing" width="400" title="Reads_scores_example">
+  <img src="Figures/Example_workflow.png" alt="drawing" width="1000" title="Example workflow">
 </p>
 
 
