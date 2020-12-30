@@ -22,7 +22,7 @@ chmod 755 Miniconda3-latest-Linux-x86_64.sh
 
 Then, after completing _CharONT_ installation, set the _MINICONDA_DIR_ variable in **config_CharONT.R** to the full path to miniconda3 directory.
 
-* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v4.2.
+* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v4.4.
 If you don't have [Guppy](https://community.nanoporetech.com/downloads) installed, choose an appropriate version and install it.
 For example, you could download and unpack the archive with:
 ```
