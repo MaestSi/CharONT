@@ -61,7 +61,7 @@ After creating a preliminary consensus sequence for Allele #1, all reads are map
 Also in case the SV is too big to allow mapping of reads at both 5' and 3' flanking regions, the size of the SV is estimated from soft-clipping. In particular, depending on whether soft-clipping occurs at the 5' end a) or at the 3' end b), a different formula is applied for calculating the size of the SV compared to Allele #1, used as a Reference.
 
 <p align="center">
-  <img src="Figures/SV_size_from_softclipping.png" alt="drawing" width="1000" title="SV size from soft-clipping>
+  <img src="Figures/SV_size_from_softclipping.png" alt="drawing" width="1000" title="SV size from soft-clipping">
 </p>
 
 ## Usage
