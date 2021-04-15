@@ -1,6 +1,6 @@
 # CharONT
 
-**CharONT** is a consensus calling pipeline meant for characterizing long genomic regions from diploid organisms. Starting from ONT reads including a shared flanking sequence, it provides consensus sequences for the two alleles and tandem repeats annotations. In case you used an enrichment method different to PCR (e.g. Crispr-Cas9 or Xdrop) or performed WGS, amplicons can be extracted _in-silico_ based on known flanking sequences. Moreover, a preprocessing pipeline is provided, so to make the whole bioinformatic analysis from raw fast5 files to consensus sequences straightforward and simple.
+**CharONT** is a consensus calling pipeline meant for characterizing long genomic regions from diploid organisms. Starting from ONT reads including a shared flanking sequence, it provides consensus sequences for the two alleles and tandem repeats annotations. In case you used an enrichment method different to PCR (e.g. Crispr-Cas9 or Xdrop), or performed WGS, amplicons can be extracted _in-silico_ based on known flanking sequences. Moreover, a preprocessing pipeline is provided, so to make the whole bioinformatic analysis from raw fast5 files to consensus sequences straightforward and simple.
 
 <p align="center">
   <img src="Figures/CharONT_logo.png" alt="drawing" width=450" title="CharONT_logo">
