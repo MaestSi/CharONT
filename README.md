@@ -1,6 +1,6 @@
 # CharONT
 
-**CharONT** is a consensus calling pipeline meant for characterizing long genomic regions from diploid organisms. Starting from ONT reads including a shared flanking sequence, it provides consensus sequences for the two alleles and tandem repeats annotations. In case you used an enrichment method different to PCR, amplicons can be extracted _in-silico_ based on known flanking sequences. Moreover, a preprocessing pipeline is provided, so to make the whole bioinformatic analysis from raw fast5 files to consensus sequences straightforward and simple.
+**CharONT** is a consensus calling pipeline meant for characterizing long genomic regions from diploid organisms. Starting from ONT reads including a shared flanking sequence, it provides consensus sequences for the two alleles and tandem repeats annotations. In case you used an enrichment method different to PCR (e.g. Crispr-Cas9 or Xdrop) or performed WGS, amplicons can be extracted _in-silico_ based on known flanking sequences. Moreover, a preprocessing pipeline is provided, so to make the whole bioinformatic analysis from raw fast5 files to consensus sequences straightforward and simple.
 
 <p align="center">
   <img src="Figures/CharONT_logo.png" alt="drawing" width=450" title="CharONT_logo">
@@ -131,9 +131,9 @@ Outputs:
 * \<"sample_name"\_in_silico_pcr_one.sam\>: sam file containing alignments between \<primer_sequence_one\> and \<fastq_reads\>
 * \<"sample_name"\_in_silico_pcr_two.sam\>: sam file containing alignments between \<primer_sequence_two\> and \<fastq_reads\>
 
-**Extract_Samplix_alignments.sh**
+**Extract_Xdrop_alignments.sh**
 
-Usage: Extract_Samplix_alignments.sh \<"sample_name".fastq\> \<reference_genome.fasta\> \<target_file.bed\>
+Usage: Extract_Xdrop_alignments.sh \<"sample_name".fastq\> \<reference_genome.fasta\> \<target_file.bed\>
 
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running; moreover, pcrclipreads.jar and samextractclip.jar from jvarkit should be installed.
 
@@ -144,7 +144,7 @@ Inputs:
 
 Outputs:
 * \<"sample_name"\_target_extracted.fastq\>: fastq file containing amplicon-like sequences in forward orientation extracted from \<"sample_name".fastq\> based on the bed file coordinates
-* \<Samplix_reads_extraction\>: directory containing temporary files
+* \<Xdrop_reads_extraction\>: directory containing temporary files
 
 
 ## Auxiliary scripts
