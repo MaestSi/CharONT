@@ -32,6 +32,8 @@ tar -xf ont-guppy-cpu_version_of_interest.tar.gz
 A directory _ont-guppy-cpu_ should have been created in your current directory.
 Then, after completing _CharONT_ installation, set the _BASECALLER_DIR_ variable in **config_CharONT.R** to the full path to _ont-guppy-cpu/bin_ directory.
 
+* pcrclipreads.jar and samextractclip.jar from [jvarkit](https://github.com/lindenb/jvarkit), but only if you intend to use **Extract_Xdrop_alignments.sh** script.
+
 **Installation**
 
 ```
@@ -187,8 +189,10 @@ Rice P., Longden I. and Bleasby A. EMBOSS: The European Molecular Biology Open S
 
 Vaser R, Sović I, Nagarajan N, Šikić M. Fast and accurate de novo genome assembly from long uncorrected reads. Genome Res. 2017 May;27(5):737-746. doi: 10.1101/gr.214270.116. Epub 2017 Jan 18. PMID: 28100585; PMCID: PMC5411768.
 
-https://github.com/nanoporetech/medaka
+[medaka](https://github.com/nanoporetech/medaka)
 
-BBMap – Bushnell B. – sourceforge.net/projects/bbmap/
+[BBMap – Bushnell B.](sourceforge.net/projects/bbmap/)
 
-https://github.com/lh3/seqtk
+[seqtk](https://github.com/lh3/seqtk)
+
+[jvarkit](https://github.com/lindenb/jvarkit)
