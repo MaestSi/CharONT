@@ -22,7 +22,7 @@ chmod 755 Miniconda3-latest-Linux-x86_64.sh
 
 Then, after completing _CharONT_ installation, set the _MINICONDA_DIR_ variable in **config_CharONT.R** to the full path to miniconda3 directory.
 
-* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v4.5.
+* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v5.0.
 If you don't have [Guppy](https://community.nanoporetech.com/downloads) installed, choose an appropriate version and install it.
 For example, you could download and unpack the archive with:
 ```
@@ -164,7 +164,25 @@ Note: configuration script, must be modified before running _Launch_CharONT.sh_ 
 **subsample_fast5.sh**
 
 Note: script run by _CharONT_preprocessing.R_ if _do_subsampling_flag_ variable is set to 1 in _config_CharONT.R_.
+                                                                                                                                                
+## Pipeline testing
+                                                                                                                                                
+A test fast5 dataset obtained with [DeepSimulator](https://github.com/liyu95/DeepSimulator) is provided. The datasets contains 1,000 reads simulating a heterozygous short tandem repeat expansion in DMPK gene.
+For full pipeline testing, decompress **Test_het_tandrep_DeepSimulator.rar** file and set the following options in the **config_CharONT.R** file:
 
+```
+do_in_silico_pcr <- 1                                                                                                                                                
+pcr_silico_primer_one <- "GCTCCGCAGGGGGGGCGGGTCTGGCCGGGAGGAGGGGCGGGGAACGGGCTAGAAAGTTTGCAGCAACTTTTCTCGAGCTTGCGTCCCAGGAGCGGATGCGC"
+pcr_silico_primer_two <- "TTATCTAGGGAGATCCCGGAGGGAATCTGGTGAGGCCTGAACGGAGGGAGATCTGGGGCTGAATAAAGGGCTTCTGCCCTCTAAAGTCGCAAAGACGTAGG"
+skip_demultiplexing_flag <- 1
+```                                                                                                                                
+
+If the pipeline completes successfully, the following results are produced.                                                                                                                                 
+                                                                                                                                
+<p align="center">
+  <img src="Figures/Test_dataset_results.png" alt="drawing" width=800" title="Test_dataset_results">
+</p>                                                                                                                                                
+                                                                                                                                                
 ## Citation
 
 For further information, please refer to the following manuscripts:
