@@ -185,6 +185,10 @@ If the pipeline completes successfully, the following results are produced.
                                                                                                                                                 
 ## Citation
 
+If this tool is useful for your work, please consider citing our manuscript.
+
+Grosso V, Marcolungo L, Maestri S, Alfano M, Lavezzari D, Iadarola B, Salviati A, Mariotti B, Botta A, D'Apice MR, Novelli G, Delledonne M and Rossato M. Characterization of FMR1 repeat-expansion and intragenic variants by indirect sequence capture. Front. Genet. doi: 10.3389/fgene.2021.743230.
+
 For further information, please refer to the following manuscripts:
 
 De Coster W, D'Hert S, Schultz DT, Cruts M, Van Broeckhoven C. NanoPack: visualizing and processing long-read sequencing data. Bioinformatics. 2018;34(15):2666-2669. doi:10.1093/bioinformatics/bty149
