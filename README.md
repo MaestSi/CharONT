@@ -185,7 +185,7 @@ If the pipeline completes successfully, the following results are produced.
                                                                                                                                                 
 ## Citation
 
-If this tool is useful for your work, please consider citing our manuscript.
+If this tool is useful for your work, please consider citing our [manuscript](https://www.frontiersin.org/articles/10.3389/fgene.2021.743230/full).
 
 Grosso V, Marcolungo L, Maestri S, Alfano M, Lavezzari D, Iadarola B, Salviati A, Mariotti B, Botta A, D'Apice MR, Novelli G, Delledonne M and Rossato M. Characterization of FMR1 repeat-expansion and intragenic variants by indirect sequence capture. Front. Genet. doi: 10.3389/fgene.2021.743230.
 
