@@ -1,5 +1,5 @@
 #
-# Copyright 2021 Simone Maestri. All rights reserved.
+# Copyright 2020 Simone Maestri. All rights reserved.
 # Simone Maestri <simone.maestri@univr.it>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -35,148 +35,18 @@ if (length(args) == 1) {
   stop("Home directory has to be provided")
 }
 
-PIPELINE_DIR <- dirname(strsplit(commandArgs(trailingOnly = FALSE)[4],"=")[[1]][2])
+###FUNCTIONS DECLARATION
 
-CONFIG_FILE <- paste0(PIPELINE_DIR, "/config_CharONT.R")
-source(CONFIG_FILE)
-
-if (!exists("sequencing_summary")) {
-  seq_sum_flag <- 0
-} else {
-  seq_sum_flag <- 1
-}
-
-if (!exists("num_threads")) {
-  num_threads <- 8
-}
-
-if (!exists("haploid_flag")) {
-  haploid_flag <- 0
-}
-
-if (!exists("pair_strands_flag")) {
-  pair_strands_flag <- 0
-}
-
-if (!exists("primers_length")) {
-  primers_length <- 25
-}
-
-if (!exists("min_maf")) {
-  min_maf <- 0.2
-}
-
-if (!exists("IQR_outliers_coef")) {
-  IQR_outliers_coef <- 3
-}
-
-if (!exists("IQR_outliers_coef_precl")) {
-  IQR_outliers_coef_precl <- 10
-}
-
-
-if (!exists("fast_alignment_flag")) {
-  fast_alignment_flag <- 1
-}
-
-if (!exists("min_clipped_len")) {
-  min_clipped_len <- 50
-}
-
-if (!exists("TRC")) {
-  TRC <- 50
-}
-
-if (!exists("TRP")) {
-  TRP <- 200
-}
-
-if (!exists("THR")) {
-  THR <- 0.85
-}
-
-if (!exists("PLUR")) {
-  PLUR <- 0.15
-}
-
-if (!exists("max_num_reads_clustering")) {
-  max_num_reads_clustering <- 500
-}
-
-if (!exists("sd_noise_score")) {
-  sd_noise_score <- 0.2
-}
-
-logfile <- paste0(analysis_dir, "/logfile.txt")
-
-fastq_files <- list.files(path = analysis_dir, pattern = "\\.fastq", full.names = TRUE)
-fasta_files <- list.files(path = analysis_dir, pattern = "\\.fasta", full.names = TRUE)
-
-if (length(fastq_files) == 0) {
-  stop(paste0("No fastq files in ", analysis_dir, " directory"))
-}
-
-if (length(fasta_files) > 0) {
-  cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
-} else {
-  for (i in 1:length(fastq_files)) {
-    fasta_file_curr <- paste0(analysis_dir, "/", gsub(pattern = "\\.fastq$", replacement = "\\.fasta", x = basename(fastq_files[i])))
-    fasta_files <- c(fasta_files, fasta_file_curr)
-    system(paste0(SEQTK, " seq -A ", fastq_files[i], " > ", fasta_file_curr))
-  }
-  cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
-}
-
-available_medaka_models <- system(paste0(MEDAKA, " tools list_models"), intern = TRUE)[1]
-
-if (length(grep(pattern = medaka_model, x = available_medaka_models)) > 0) {
-  cat(text = paste0("Medaka model: ", medaka_model), sep = "\n")
-  cat(text = paste0("Medaka model: ", medaka_model), file = logfile, sep = "\n", append = TRUE)
-  cat(text = "\n", file = logfile, append = TRUE)
-} else {
-  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g360 was selected"), sep = "\n")
-  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g360 was selected"), file = logfile, sep = "\n", append = TRUE)
-  cat(text = "\n", file = logfile, append = TRUE)  
-  medaka_model <- "r941_min_high_g360"
-}
-
-if (haploid_flag == 1) {
-  cat(text = "Pipeline running in haploid mode", sep = "\n")
-  cat(text = "Pipeline running in haploid mode", file = logfile, sep = "\n", append = TRUE)
-  cat(text = "\n", file = logfile, append = TRUE)
-  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as Outliers"), sep = "\n")
-  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
-  cat(text = "\n", file = logfile, append = TRUE)
-} else {
-  cat(text = "Pipeline running in diploid mode", sep = "\n")
-  cat(text = "Pipeline running in diploid mode", file = logfile, sep = "\n", append = TRUE)
-  cat(text = "\n", file = logfile, append = TRUE)
-  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as candidate Outliers"), sep = "\n")
-  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as candidate Outliers"), file = logfile, sep = "\n", append = TRUE)
-  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR within each cluster will be labelled as Outliers"), sep = "\n")
-  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR within each cluster will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
-  cat(text = "\n", file = logfile, append = TRUE)
-}
-
-target_reads_consensus <- TRC
-target_reads_polishing <- TRP
-#minimum number of aligned bases at a specific position to include the base in draft consensus
-plurality_value <- PLUR*target_reads_consensus
-#seed for subsampling
-seed <- 1
-
-#cycle over fasta files
-for (i in 1:length(fasta_files)) {
-  skip_first_allele_flag <- 0
-  skip_second_allele_flag <- 0
-  sample_dir <- gsub(pattern = "\\.fasta", replacement = "", x = fasta_files[i])
+Obtain_preliminary_consensus <- function(fastq_file) {
+  fasta_file <- gsub(pattern = "\\.fastq", replacement = ".fasta", x = fastq_file)
+  sample_dir <- gsub(pattern = "\\.fasta", replacement = "", x = fasta_file)
   sample_name <- basename(sample_dir)
   subset_reads_fa <- paste0(sample_dir, "/", sample_name, "_subset_reads.fasta")
   dir.create(sample_dir)
   vsearch_clustering_dir <- paste0(sample_dir, "/clustering_vsearch")
   dir.create(vsearch_clustering_dir)
-  #perform vsearch clustering and create a preliminary version for Allele #1
-  system(paste0(SEQTK, " sample -s ", seed , " ", fasta_files[i], " ",  max_num_reads_clustering, " > ", subset_reads_fa))
+  #perform vsearch clustering and create a preliminary version for one Allele
+  system(paste0(SEQTK, " sample -s ", seed , " ", fasta_file, " ",  max_num_reads_clustering, " > ", subset_reads_fa))
   ids_mac_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_ids_mac.txt")
   mac_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_mac.fasta")
   mac_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_reads_mac.fastq")
@@ -185,21 +55,22 @@ for (i in 1:length(fasta_files)) {
   id_centroid <-  system(paste0("echo ", "\"", centroid_mac, "\"", " | sed 's/centroid=//g' | sed 's/;seqs.*$//g'"), intern = TRUE)
   clusters_vsearch <- list.files(path = vsearch_clustering_dir, pattern = paste0(sample_name, "_cluster"), full.names = TRUE)
   for (j in 1:length(clusters_vsearch)) {
-    cluster_match <- system(paste0("cat ", clusters_vsearch[j], " | grep \"", id_centroid, "\""), intern = TRUE)
+    #cluster_match <- system(paste0("cat ", clusters_vsearch[j], " | grep \"", id_centroid, "\""), intern = TRUE)
+    cluster_match <-  grep(id_centroid, readLines(clusters_vsearch[j]))
     if (length(cluster_match) > 0) {
       mac_file <- clusters_vsearch[j]
       system(paste0("cat ", mac_file, " | grep ", "\"",  "^>", "\"", "  | sed 's/^>//' | sed 's/;.*$//' > ", ids_mac_first_preliminary))
-      system(paste0(SEQTK, " subseq ", fasta_files[i], " ", ids_mac_first_preliminary, " > ", mac_fa_first_preliminary))
-      system(paste0(SEQTK, " subseq ", fastq_files[i], " ", ids_mac_first_preliminary, " > ", mac_fq_first_preliminary))
+      system(paste0(SEQTK, " subseq ", fasta_file, " ", ids_mac_first_preliminary, " > ", mac_fa_first_preliminary))
+      system(paste0(SEQTK, " subseq ", fastq_file, " ", ids_mac_first_preliminary, " > ", mac_fq_first_preliminary))
       break
     }
   }
-  num_reads_sample <- as.double(system(paste0("cat ", fasta_files[i], " | grep \"^>\" | wc -l"), intern=TRUE))
+  num_reads_sample <- as.double(system(paste0("cat ", fasta_file, " | grep \"^>\" | wc -l"), intern=TRUE))
   num_reads_mac_first_preliminary <- as.double(system(paste0("cat ", mac_fa_first_preliminary, " | grep \"^>\" | wc -l"), intern=TRUE))
   target_reads_consensus <- TRC
-  first_allele_preliminary_tmp1 <- paste0(sample_dir, "/", sample_name, "_preliminary_first_allele_tmp1.fasta")
-  first_allele_preliminary_tmp2 <- paste0(sample_dir, "/", sample_name, "_preliminary_first_allele_tmp2.fasta")
-  first_allele_preliminary <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_preliminary_first_allele.fasta")
+  first_allele_preliminary_tmp1 <- paste0(sample_dir, "/", sample_name, "_preliminary_allele_tmp1.fasta")
+  first_allele_preliminary_tmp2 <- paste0(sample_dir, "/", sample_name, "_preliminary_allele_tmp2.fasta")
+  first_allele_preliminary <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_preliminary_allele.fasta")
   if (num_reads_mac_first_preliminary < 3) {
     system(paste0("head -n2 ", vsearch_clustering_dir, "/", sample_name, "_consensus.fasta > ", first_allele_preliminary))
   } else {
@@ -210,8 +81,8 @@ for (i in 1:length(fasta_files)) {
     sequences <- readDNAStringSet(fasta_files[i], "fasta")
     ws <- width(sequences)
     amplicon_length <- ceiling(mean(ws))
-    draft_reads_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_preliminary_first_allele.fastq")
-    draft_reads_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_preliminary_first_allele.fasta")
+    draft_reads_fq_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_preliminary_allele.fastq")
+    draft_reads_fa_first_preliminary <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_preliminary_allele.fasta")
     system(paste0(SEQTK, " sample -s ", seed , " ", mac_fq_first_preliminary, " ",  target_reads_consensus, " > ", draft_reads_fq_first_preliminary))
     system(paste0(SEQTK, " seq -A ", draft_reads_fq_first_preliminary, " > ", draft_reads_fa_first_preliminary))
     mfa_file_first_preliminary <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa_first_preliminary)
@@ -222,15 +93,21 @@ for (i in 1:length(fasta_files)) {
     DNAStringSet_obj_renamed <- DNAStringSet_obj
     original_headers <- names(DNAStringSet_obj)
     sequences <- seq(DNAStringSet_obj)
-    names(DNAStringSet_obj_renamed) <- "Allele_number_1_preliminary"
+    names(DNAStringSet_obj_renamed) <- "Allele_preliminary"
     writeXStringSet(x = DNAStringSet_obj_renamed, filepath = first_allele_preliminary, format = "fasta", width = 20000)
+    return(list(first_allele_preliminary, num_reads_sample))
   }
+}
+
+Cluster_reads <- function(fastq_file, first_allele_preliminary, num_reads_sample) {
+  sample_dir <- gsub(pattern = "\\.fastq", replacement = "", x = fastq_file)
+  sample_name <- basename(sample_dir)
   DNAStringSet_obj_preliminary <- readDNAStringSet(first_allele_preliminary, "fasta")
   reference_length <- width(DNAStringSet_obj_preliminary)
-  #map all reads to the preliminary Allele #1 in order to identify reads coming from the two alleles
-  sam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_first_allele_preliminary.sam")
-  bam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_first_allele_preliminary.bam")
-  system(paste0(MINIMAP2, " -ax map-ont ", first_allele_preliminary, " ", fastq_files[i], " | ", SAMTOOLS, " view -h -F 2308 -o " , sam_file_reads_to_first_allele))
+  #map all reads to the preliminary Allele in order to identify reads coming from the two alleles
+  sam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_allele_preliminary.sam")
+  bam_file_reads_to_first_allele <- paste0(sample_dir, "/", sample_name, "_reads_to_allele_preliminary.bam")
+  system(paste0(MINIMAP2, " -ax map-ont ", first_allele_preliminary, " ", fastq_file, " | ", SAMTOOLS, " view -h -F 2308 -o " , sam_file_reads_to_first_allele))
   system(paste0(SAMTOOLS, " view -hSb ", sam_file_reads_to_first_allele, " | ", SAMTOOLS, " sort -o ", bam_file_reads_to_first_allele))
   sam_reads_to_first_allele_tmp <- read.table(file = sam_file_reads_to_first_allele, fill = TRUE, comment.char = "@", stringsAsFactors = FALSE, sep = "\t", quote = "")
   ind_rm <- grep(pattern = "NM", x =  sam_reads_to_first_allele_tmp[, 1])
@@ -320,7 +197,7 @@ for (i in 1:length(fasta_files)) {
               clipping_block_lengths_curr_read <- c(clipping_block_lengths_curr_read, 0)
               clipping_block_lengths_curr_read_signed <- c(clipping_block_lengths_curr_read_signed, 0)
             }
-          #if the soft-clipping is at the 3' of the read, subtract the reference length, the length of the mapping and the starting coordinate
+            #if the soft-clipping is at the 3' of the read, subtract the reference length, the length of the mapping and the starting coordinate
           } else {
             if (as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) > min_clipped_len) {
               clipping_block_curr_signed <- as.numeric(substr(x = cigar_string, start = (clipping_starting_coords[l]), stop = (clipping_starting_coords[l] + attr(clipping_starting_coords, "match.length")[l] - 2))) - (reference_length - mapped_length_curr_read  - start_mapping_coord[k])
@@ -402,16 +279,16 @@ for (i in 1:length(fasta_files)) {
     preclustering_score_no_outliers <- matrix(score, ncol = 2)
   }
   #skip clustering and assign all reads to one allele if studying haploid chromosome or if there are not 2 different maximum non-matching lengths across all reads
-  if (haploid_flag == 1 || nrow(unique(preclustering_score_no_outliers)) < 2) {
+  if (num_alleles == 1 || nrow(unique(preclustering_score_no_outliers)) < 2) {
     if (nrow(unique(preclustering_score_no_outliers)) < 2) {
-      cat(text = paste0("WARNING: not possible to distinguish between the two alleles for sample ", sample_name, ", haploid analysis is performed"), sep = "\n")
-      cat(text = paste0("WARNING: not possible to distinguish between the two alleles for sample ", sample_name, ", haploid analysis is performed"), file = logfile, sep = "\n", append = TRUE)
+      cat(text = paste0("WARNING: not possible to identify multiple alleles for sample ", sample_name, ", haploid analysis is performed"), sep = "\n")
+      cat(text = paste0("WARNING: not possible to identify multiple alleles for sample ", sample_name, ", haploid analysis is performed"), file = logfile, sep = "\n", append = TRUE)
     }
-    first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fastq")
-    first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
-    first_allele_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_first_allele.txt")
-    first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fastq")
-    first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
+    first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_allele_1.fastq")
+    first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_allele_1.fasta")
+    first_allele_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_allele_1.txt")
+    first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_allele_1.fastq")
+    first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_allele_1.fasta")
     #remove outliers which may be associated with somatic mutations
     ind_outliers <- ind_preclustering_outliers
     num_outliers <- length(ind_outliers) 
@@ -431,59 +308,79 @@ for (i in 1:length(fasta_files)) {
     cluster_alternative_index <- c()
     cluster_alternative_index_no_outliers <- c()
     write.table(x=reads_names_no_outliers, quote = FALSE, file = first_allele_reads_names, row.names = FALSE, col.names = FALSE)
-    system(paste0(SEQTK, " subseq ", fastq_files[i], " ", first_allele_reads_names, " > ", first_allele_reads_fq))
+    system(paste0(SEQTK, " subseq ", fastq_file, " ", first_allele_reads_names, " > ", first_allele_reads_fq))
     system(paste0(SEQTK, " seq -A ", first_allele_reads_fq, " > ", first_allele_reads_fa))
-    skip_second_allele_flag <- 1
-    num_reads_second_allele <- 0
-    allelic_ratio_perc_second <- 0
-    score_thr <- min(score)
-    #cluster reads into 2 groups (ref/alt allele) based on length of the longest portion non matching the reference (first allele)
+    allele_reads_fq_all <- first_allele_reads_fq
+    #cluster reads into num_alleles groups (ref/alt alleles) based on length of the longest portion non matching the reference (first allele)
   } else {
     #do clustering
-    clusters <- kmeans(preclustering_score_no_outliers, 2, iter.max = 1000, nstart = 5)
+    clusters <- kmeans(preclustering_score_no_outliers, num_alleles, iter.max = 1000, nstart = 5)
     #find index and score of reference reads
     cluster_reference_id <- unique(which(rowMeans(clusters$centers) == min(rowMeans(clusters$centers))))
     cluster_reference_index_tmp <- which(clusters$cluster == cluster_reference_id)
-    #find index and score of alternative reads
-    cluster_alternative_id <- unique(which(rowMeans(clusters$centers) == max(rowMeans(clusters$centers))))
-    cluster_alternative_index_tmp <- which(clusters$cluster == cluster_alternative_id)
+    
+    #find index and score of alternative alleles
+    cluster_alternative_id <- (1:num_alleles)[-cluster_reference_id]
+    cluster_alternative_index_tmp <- lapply(cluster_alternative_id, function (x) which(clusters$cluster == x))
+    names(cluster_alternative_index_tmp) <- paste0("Allele_", cluster_alternative_id)
+    #if there are any preclustering outliers
     if (num_preclustering_outliers > 0) {
-      #find differences between preclustering outliers and centers
-      diff_ref <- apply(t(abs(apply(matrix(preclustering_outliers_score, ncol = 2), 1, function(x) x - clusters$centers[cluster_reference_id, ]))), 1, FUN=max)
-      diff_alt <- apply(t(abs(apply(matrix(preclustering_outliers_score, ncol = 2), 1, function(x) x - clusters$centers[cluster_alternative_id, ]))), 1, FUN=max)
-      if (cluster_reference_id == 1) {
-        diff <- cbind(diff_ref, diff_alt)
-      } else {
-        diff <- cbind(diff_alt, diff_ref)
+      #for each preclustering outlier, calculate distance from the clusters' centers
+      diff <- matrix(data = 0, nrow = num_preclustering_outliers, ncol = num_alleles)
+      for (l in 1:num_alleles) {
+        diff[, l] <- apply(t(abs(apply(matrix(preclustering_outliers_score, ncol = 2), 1, function(x) x - clusters$centers[l, ]))), 1, function(y) sqrt(sum(y^2)))
       }
-      #determine if preclustering outliers should be assigned to reference or alternative cluster
-      preclustering_outliers_score_reference <- matrix(matrix(preclustering_outliers_score, ncol = 2)[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_reference_id), ], ncol = 2)
-      preclustering_outliers_score_alternative <- matrix(matrix(preclustering_outliers_score, ncol = 2)[which(apply(matrix(diff, ncol = 2), 1, FUN=which.min) == cluster_alternative_id),], ncol = 2)
-      #assign preclustering outliers to reference cluster
-      if (length(preclustering_outliers_score_reference) > 0) {
-        cluster_reference_score <- matrix(rbind(preclustering_outliers_score_reference, preclustering_score_no_outliers[cluster_reference_index_tmp, ]), ncol = 2)
+      #determine if preclustering outliers should be assigned to reference or alternative clusters
+      preclustering_outliers_cluster_id <- apply(diff, 1, FUN=which.min)
+      #associate preclustering outliers' scores to alleles
+      preclustering_outliers_score_split <- lapply(split(preclustering_outliers_score, preclustering_outliers_cluster_id), function(x) matrix(data = x, ncol = 2, byrow = FALSE))
+      names(preclustering_outliers_score_split) <- paste0("Allele_", names(preclustering_outliers_score_split))
+      ref_id <- paste0("Allele_", cluster_reference_id)
+      alt_id <- paste0("Allele_", cluster_alternative_id)
+      preclustering_outliers_score_reference <- preclustering_outliers_score_split[ref_id]
+      preclustering_outliers_score_alternative <- preclustering_outliers_score_split[names(preclustering_outliers_score_split) %in% alt_id]
+      
+      #if any, assign preclustering outliers to reference cluster
+      if (length(unlist(preclustering_outliers_score_reference)) > 0) {
+        cluster_reference_score <- matrix(rbind(preclustering_outliers_score_reference[[1]], preclustering_score_no_outliers[cluster_reference_index_tmp, ]), ncol = 2)
       } else {
         cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
       }
-      #assign preclustering outliers to alternative cluster
-      if (length(preclustering_outliers_score_alternative) > 0) {
-        cluster_alternative_score <- matrix(rbind(preclustering_outliers_score_alternative, preclustering_score_no_outliers[cluster_alternative_index_tmp, ]), ncol = 2)
-      } else {
-        cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
+      
+      #assign preclustering outliers to alternative clusters
+      cluster_alternative_score <- list()
+      for (l in alt_id) {
+        if (length(preclustering_outliers_score_alternative[[l]]) > 0) {
+          cluster_alternative_score[[l]] <- matrix(rbind(preclustering_outliers_score_alternative[[l]], preclustering_score_no_outliers[cluster_alternative_index_tmp[[l]], ]), ncol = 2)
+        } else {
+          cluster_alternative_score[[l]] <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp[[l]], ], ncol = 2)
+        }
       }
+    #if there are not any preclustering outliers  
     } else {
       cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
-      cluster_alternative_score <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp, ], ncol = 2)
+      cluster_alternative_score <- list()
+      for (l in names(preclustering_outliers_score_alternative)) {
+        cluster_alternative_score[[l]] <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp[[l]], ], ncol = 2)
+      }
     }
+    #identify reads from the reference allele
     cluster_reference_index <- c()
     for (k in 1:length(cluster_reference_score[, 1])) {
       ind <- which(apply(score, 1, function(x) all(x == matrix(cluster_reference_score[k, ], ncol = 2))))
       cluster_reference_index <- unique(c(cluster_reference_index, ind))
     }
-    cluster_alternative_index <- c()
-    for (k in 1:length(cluster_alternative_score[, 1])) {
-      ind <- which(apply(score, 1, function(x) all(x == matrix(cluster_alternative_score[k, ], ncol = 2))))
-      cluster_alternative_index <- unique(c(cluster_alternative_index, ind))
+    #identify reads from the alternative alleles
+    cluster_alternative_index <- list()
+    #for each alternative allele
+    for (l in 1:length(cluster_alternative_score)) {
+      cai_curr <- c()
+      #identify reads assigned to alternative allele l
+      for (k in 1:length(cluster_alternative_score[[l]][, 1])) {
+        ind <- which(apply(score, 1, function(x) all(x == matrix(cluster_alternative_score[[l]][k, ], ncol = 2))))
+        cai_curr <- unique(c(cai_curr, ind))
+      }
+      cluster_alternative_index[[l]] <- cai_curr
     }
     #remove outliers from reference cluster which may be associated with somatic mutations
     outliers_reference_score_dels <- boxplot.stats(cluster_reference_score[, 1], coef = IQR_outliers_coef)$out
@@ -499,62 +396,92 @@ for (i in 1:length(fasta_files)) {
       cluster_reference_index_no_outliers <- cluster_reference_index
       cluster_reference_readnames <- reads_names[cluster_reference_index]
     }
-    #remove outliers from alternative cluster which may be associated with somatic mutations
-    outliers_alternative_score_dels <- boxplot.stats(cluster_alternative_score[, 1], coef = IQR_outliers_coef)$out
-    outliers_alternative_score_ins <- boxplot.stats(cluster_alternative_score[, 2], coef = IQR_outliers_coef)$out
-    ind_outliers_alternative <- intersect(which(score[, 1] %in% outliers_alternative_score_dels | score[, 2] %in% outliers_alternative_score_ins), cluster_alternative_index)
-    outliers_alternative_score <- score[ind_outliers_alternative, ]
-    score_alternative_no_outliers <- matrix(score[setdiff(cluster_alternative_index, ind_outliers_alternative), ], ncol = 2)
-    num_outliers_alternative <- nrow(cluster_alternative_score) - nrow(score_alternative_no_outliers)
+    #identify outliers from alternative clusters which may be associated with somatic mutations
+    outliers_alternative_score_dels <- lapply(cluster_alternative_score, function(x) boxplot.stats(x[, 1], coef = IQR_outliers_coef)$out)
+    outliers_alternative_score_ins <- lapply(cluster_alternative_score, function(x) boxplot.stats(x[, 2], coef = IQR_outliers_coef)$out)
+    ind_outliers_alternative <- list()
+    for (j in 1:(num_alleles - 1)) {
+      ind_outliers_alternative[[j]] <- intersect(which(score[, 1] %in% outliers_alternative_score_dels[[j]] | score[, 2] %in% outliers_alternative_score_ins[[j]]), cluster_alternative_index[[j]])
+    }
+    #remove alternative alleles' outliers from scores 
+    outliers_alternative_score <- score[unlist(ind_outliers_alternative), ]
+    score_alternative_no_outliers <- matrix(score[setdiff(unlist(cluster_alternative_index), unlist(ind_outliers_alternative)), ], ncol = 2)
+    num_outliers_alternative <- sum(unlist(lapply(cluster_alternative_score, function(x) nrow(x))))- nrow(score_alternative_no_outliers)
     if (num_outliers_alternative > 0) {
-      cluster_alternative_index_no_outliers <- setdiff(cluster_alternative_index, ind_outliers_alternative)
-      cluster_alternative_readnames <- reads_names[cluster_alternative_index_no_outliers]
+      cluster_alternative_index_no_outliers <- mapply(setdiff, cluster_alternative_index, ind_outliers_alternative, SIMPLIFY = FALSE)
+      cluster_alternative_readnames <- lapply(cluster_alternative_index_no_outliers, function(x) reads_names[x])
     } else {
       cluster_alternative_index_no_outliers <- cluster_alternative_index
-      cluster_alternative_readnames <- reads_names[cluster_alternative_index]
+      cluster_alternative_readnames <- lapply(cluster_alternative_index, function(x) reads_names[x])
     }
+    #sort clusters' centers for median and identify reads names associated with each allele
     median_cluster_reference_nonreflen <- clusters$centers[cluster_reference_id, ]
     median_cluster_alternative_nonreflen <- clusters$centers[cluster_alternative_id, ]
     clusters$median <- rbind(median_cluster_reference_nonreflen, median_cluster_alternative_nonreflen, deparse.level = 0)
-    first_allele_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_first_allele.txt")
-    first_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fastq")
-    first_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_first_allele.fasta")
-    write.table(x=cluster_reference_readnames, quote = FALSE, file = first_allele_reads_names, row.names = FALSE, col.names = FALSE)
-    system(paste0(SEQTK, " subseq ", fastq_files[i], " ", first_allele_reads_names, " > ", first_allele_reads_fq))
-    system(paste0(SEQTK, " seq -A ", first_allele_reads_fq, " > ", first_allele_reads_fa))
-    second_allele_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_second_allele.txt")
-    second_allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_second_allele.fastq")
-    second_allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_second_allele.fasta")
-    write.table(x=cluster_alternative_readnames, quote = FALSE, file = second_allele_reads_names, row.names = FALSE, col.names = FALSE)
-    system(paste0(SEQTK, " subseq ", fastq_files[i], " ", second_allele_reads_names, " > ", second_allele_reads_fq))
-    system(paste0(SEQTK, " seq -A ", second_allele_reads_fq, " > ", second_allele_reads_fa))
-    outliers_readnames <- reads_names[c(ind_outliers_reference, ind_outliers_alternative)]
+    cluster_readnames <- c(list(cluster_reference_readnames), cluster_alternative_readnames)
+    
+    allele_reads_fq_all <- c()
+    for (k in 1:num_alleles) {
+      allele_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_allele_", k, ".txt")
+      allele_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_allele_", k, ".fastq")
+      allele_reads_fq_all <- c(allele_reads_fq_all, allele_reads_fq)
+      allele_reads_fa <- paste0(sample_dir, "/", sample_name, "_reads_allele_", k, ".fasta")
+      write.table(x = cluster_readnames[[k]], quote = FALSE, file = allele_reads_names, row.names = FALSE, col.names = FALSE)
+      system(paste0(SEQTK, " subseq ", fastq_file, " ", allele_reads_names, " > ", allele_reads_fq))
+      system(paste0(SEQTK, " seq -A ", allele_reads_fq, " > ", allele_reads_fa))
+    }
+    outliers_readnames <- reads_names[unlist(c(ind_outliers_reference, ind_outliers_alternative))]
     outliers_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_outliers.txt")
-    write.table(x=outliers_readnames, quote = FALSE, file = outliers_reads_names, row.names = FALSE, col.names = FALSE)
+    write.table(x = outliers_readnames, quote = FALSE, file = outliers_reads_names, row.names = FALSE, col.names = FALSE)
     outliers_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_outliers.fastq")
-    system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
+    system(paste0(SEQTK, " subseq ", fastq_file, " ", outliers_reads_names, " > ", outliers_reads_fq))
   }
   num_outliers <- num_outliers_reference + num_outliers_alternative
-  ind_outliers <- c(ind_outliers_reference, ind_outliers_alternative)
+  ind_outliers <- c(ind_outliers_reference, unlist(ind_outliers_alternative))
   allelic_ratio_outliers <- num_outliers/num_reads_sample
   allelic_ratio_perc_outliers <- allelic_ratio_outliers*100
+  #col_list <- colours()[sample(x = 1:length(colours()), size = 10, replace = FALSE)]
+  #col_list <- rainbow(n = 10)
+  col_list <- c('#3cb44b', '#4363d8', '#ffe119', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000')
+  png(paste0(sample_dir, "/", sample_name, "_reads_scores_smoothScatter.png"))
+  smoothScatter(score[-ind_outliers, ], xlab = xlabplot, ylab = ylabplot, main = "Reads scores")
+  dev.off()
+  
   if (num_outliers > 0) {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
-    points(matrix(score[cluster_alternative_index_no_outliers, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
+    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "black", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
     points(matrix(score[ind_outliers, ], ncol = 2), col = "red2", type = "p", pch = 15, cex = 2)
-    legend(x = "topright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
+    if (num_alleles > 1) {
+      for (i in 1:(num_alleles - 1)) {
+        points(matrix(score[cluster_alternative_index_no_outliers[[i]], ], ncol = 2), col = col_list[i], type = "p", pch = 19, cex = 2)
+      }
+      legend(x = "topright", legend = c(ref_id, alt_id, "Outliers"), col = c("black", col_list[1:(num_alleles - 1)], "red2"), cex = 1.5, pch = 19)
+    } else {
+      legend(x = "topright", legend = c("Allele_1", "Outliers"), col = c("black", "red2"), cex = 1.5, pch = 19)
+    }
     dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores_logscale.png"))
-    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, log = "xy", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2)
-    points(matrix(score[cluster_alternative_index_no_outliers, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
+    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, log = "xy", main = "Reads scores", col = "black", type = "p", pch = 19, cex = 2)
     points(matrix(score[ind_outliers, ], ncol = 2), col = "red2", type = "p", pch = 15, cex = 2)
-    legend(x = "bottomright", legend = c("Allele #1", "Allele #2", "Outliers"), col = c("blue", "black", "red2"), cex = 1.5, pch = c(19, 19, 15))
+    if (num_alleles > 1) {
+      for (i in 1:(num_alleles - 1)) {
+        points(matrix(score[cluster_alternative_index_no_outliers[[i]], ], ncol = 2), col = col_list[i], type = "p", pch = 19, cex = 2)
+      }
+      legend(x = "bottomright", legend = c(ref_id, alt_id, "Outliers"), col = c("black", col_list[1:(num_alleles - 1)], "red2"), cex = 1.5, pch = 19)
+    } else {
+      legend(x = "bottomright", legend = c("Allele_1", "Outliers"), col = c("black", "red2"), cex = 1.5, pch = 19)
+    }
     dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores_no_outliers.png"))
-    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
-    points(matrix(score[cluster_alternative_index_no_outliers, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
-    legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
+    plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "black", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[-ind_outliers, 1])*1.5), ylim = c(0, max(score[-ind_outliers, 2])*1.5))
+    if (num_alleles > 1) {
+      for (i in 1:(num_alleles - 1)) {
+        points(matrix(score[cluster_alternative_index_no_outliers[[i]], ], ncol = 2), col = col_list[i], type = "p", pch = 19, cex = 2)
+      }
+      legend(x = "topright", legend = c(ref_id, alt_id), col = c("black", col_list[1:(num_alleles - 1)]), cex = 1.5, pch = c(19, 19))
+    } else {
+      legend(x = "topright", legend = "Allele_1", col = "black", cex = 1.5, pch = 19)
+    }
     dev.off()
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads (", sprintf("%.2f", allelic_ratio_perc_outliers), "%), possibly associated with somatic mutations, have been discarded"), sep = "\n")
     cat(text = paste0("Sample ", sample_name, ": ", sprintf("%d", num_outliers), " reads (", sprintf("%.2f", allelic_ratio_perc_outliers), "%), possibly associated with somatic mutations, have been discarded"),  file = logfile, sep = "\n", append = TRUE)
@@ -562,215 +489,275 @@ for (i in 1:length(fasta_files)) {
     outliers_reads_names <- paste0(sample_dir, "/", sample_name, "_reads_names_outliers.txt")
     write.table(x=outliers_readnames, quote = FALSE, file = outliers_reads_names, row.names = FALSE, col.names = FALSE)
     outliers_reads_fq <- paste0(sample_dir, "/", sample_name, "_reads_outliers.fastq")
-    system(paste0(SEQTK, " subseq ", fastq_files[i], " ", outliers_reads_names, " > ", outliers_reads_fq))
+    system(paste0(SEQTK, " subseq ", fastq_file, " ", outliers_reads_names, " > ", outliers_reads_fq))
     reads_names_no_outliers <- reads_names[-ind_outliers]
   } else {
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
-    plot(matrix(score, ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
-    points(matrix(score[cluster_alternative_index, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
-    legend(x = "topright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
+    plot(matrix(score, ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "black", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
+    if (num_alleles > 1) {
+      for (i in 1:(num_alleles - 1)) {
+        points(matrix(score[cluster_alternative_index_no_outliers[[i]], ], ncol = 2), col = col_list[i], type = "p", pch = 19, cex = 2)
+      }
+      legend(x = "topright", legend = c(ref_id, alt_id), col = c("black", col_list[1:(num_alleles - 1)]), cex = 1.5, pch = 19)
+    } else {
+      legend(x = "topright", legend = "Allele_1", col = "black", cex = 1.5, pch = 19)
+    }
     dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores_logscale.png"))
-    plot(matrix(score, ncol = 2), xlab = xlabplot, ylab = ylabplot, log = "xy", main = "Reads scores", col = "blue", type = "p", pch = 19, cex = 2)
-    points(matrix(score[cluster_alternative_index, ], ncol = 2), col = "black", type = "p", pch = 19, cex = 2)
-    legend(x = "bottomright", legend = c("Allele #1", "Allele #2"), col = c("blue", "black"), cex = 1.5, pch = c(19, 19))
+    plot(matrix(score, ncol = 2), xlab = xlabplot, ylab = ylabplot, log = "xy", main = "Reads scores", col = "black", type = "p", pch = 19, cex = 2)
+    if (num_alleles > 1) {
+      for (i in 1:(num_alleles - 1)) {
+        points(matrix(score[cluster_alternative_index_no_outliers[[i]], ], ncol = 2), col = col_list[i], type = "p", pch = 19, cex = 2)
+      }
+      legend(x = "bottomright", legend = c(ref_id, alt_id), col = c("black", col_list[1:(num_alleles - 1)]), cex = 1.5, pch = 19)
+    } else {
+      legend(x = "bottomright", legend = "Allele_1", col = "black", cex = 1.5, pch = 19)
+    }
     dev.off()
     reads_names_no_outliers <- reads_names
   }
-  if (skip_first_allele_flag != 1) {
-    num_reads_first_allele <- as.double(system(paste0("cat ", first_allele_reads_fa, " | grep \"^>\" | wc -l"), intern=TRUE))
-  }
-  if (skip_second_allele_flag != 1) {
-    num_reads_second_allele <- as.double(system(paste0("cat ", second_allele_reads_fa, " | grep \"^>\" | wc -l"), intern=TRUE))
-  }
-  #create consensus sequence for Allele #1
-  allelic_ratio_first <- num_reads_first_allele/num_reads_sample
-  allelic_ratio_perc_first <- allelic_ratio_first*100
-  allelic_ratio_second <- num_reads_second_allele/num_reads_sample
-  allelic_ratio_perc_second <- allelic_ratio_second*100
-  unassigned_reads_perc <- 100 - allelic_ratio_perc_first - allelic_ratio_perc_second
-  cat(text = paste0("Sample ", sample_name, ": ", sprintf("%.2f", allelic_ratio_perc_first), "% reads assigned to Allele #1; ", sprintf("%.2f", allelic_ratio_perc_second), "% reads assigned to Allele #2; ", sprintf("%.2f", unassigned_reads_perc), "% reads unassigned"), sep = "\n")
-  cat(text = paste0("Sample ", sample_name, ": ", sprintf("%.2f", allelic_ratio_perc_first), "% reads assigned to Allele #1; ", sprintf("%.2f", allelic_ratio_perc_second), "% reads assigned to Allele #2; ", sprintf("%.2f", unassigned_reads_perc), "% reads unassigned"),  file = logfile, sep = "\n", append = TRUE)
-  #if not at least 3 reads are assigned to one of the two alleles, the sample is skipped
-  if (max(num_reads_first_allele, num_reads_second_allele) < 3) {
-    max_reads_allele <- max(num_reads_first_allele, num_reads_second_allele)
-    num_allele <- which(c(num_reads_first_allele, num_reads_second_allele) == max_reads_allele)[1]                        
-    cat(text = paste0("WARNING: Only ", max_reads_allele, " reads available for sample ", sample_name, " for Allele #", num_allele, "; skipping sample"), sep = "\n")
-    cat(text = paste0("WARNING: Only ", max_reads_allele, " reads available for sample ", sample_name, " for Allele #", num_allele, "; skipping sample"),  file = logfile, sep = "\n", append = TRUE)
-    next
-  }
-  if (num_reads_first_allele < 3 || allelic_ratio_first < min_maf) {
-    skip_first_allele_flag <- 1
-    if (allelic_ratio_first > min_maf) {
-      first_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_first_allele_untrimmed.fasta")
-      first_allele <- paste0(analysis_dir, "/", sample_name, "_first_allele.fasta")
-      system(paste0("head -n2 ", first_allele_reads_fa, " > ", first_allele_untrimmed))
-      system(paste0(SEQTK, " trimfq ", first_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
-      setwd(analysis_dir)
-      system(paste0(TRF, " ", first_allele, " 2 7 7 80 10 50 500"))
-      system(paste0(TRF, " ", first_allele, " 2 3 5 80 10 14 500"))
-      system(paste0(TRF, " ", first_allele, " 2 500 500 80 10 50 500"))
-    }
-  } else if (num_reads_second_allele < 3 || allelic_ratio_second < min_maf) {
-    skip_second_allele_flag <- 1
-    if (allelic_ratio_second > min_maf) {
-      second_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_second_allele_untrimmed.fasta")
-      second_allele <- paste0(analysis_dir, "/", sample_name, "_second_allele.fasta")
-      system(paste0("head -n2 ", second_allele_reads_fa, " > ", second_allele_untrimmed))
-      system(paste0(SEQTK, " trimfq ", second_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
-      setwd(analysis_dir)
-      system(paste0(TRF, " ", second_allele, " 2 7 7 80 10 50 500"))
-      system(paste0(TRF, " ", second_allele, " 2 3 5 80 10 14 500"))
-      system(paste0(TRF, " ", second_allele, " 2 500 500 80 10 50 500"))
-    }
-  } 
-  
-  target_reads_consensus <- TRC
-  
-  if (skip_first_allele_flag == 1) {
-    cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_first), "%) from sample ", sample_name, " have been assigned to Allele #1; skipping"), sep = "\n")
-    cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_first), "%) from sample ", sample_name, " have been assigned to Allele #1; skipping"),  file = logfile, sep = "\n", append = TRUE)
-  } else {
-    if (num_reads_first_allele < target_reads_consensus) {
-      target_reads_consensus <- num_reads_first_allele
-      target_reads_polishing <- num_reads_first_allele
-      cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"), sep = "\n")
-      cat(text = paste0("WARNING: Only ", num_reads_first_allele, " reads available for sample ", sample_name, " for Allele #1"),  file = logfile, sep = "\n", append = TRUE)
-    } 
-    plurality_value <- PLUR*target_reads_consensus
-    draft_consensus_first_tmp1 <- paste0(sample_dir, "/", sample_name, "_draft_first_allele_tmp1.fasta")
-    draft_consensus_first_tmp2 <- paste0(sample_dir, "/", sample_name, "_draft_first_allele_tmp2.fasta")
-    draft_consensus_first <- paste0(sample_dir, "/", sample_name, "_draft_first_allele.fasta")
-    first_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_draft_first_allele_untrimmed.fasta")
-    first_allele <- paste0(analysis_dir, "/", sample_name, "_first_allele.fasta")
-    sequences <- readDNAStringSet(fasta_files[i], "fasta")
-    ws <- width(sequences)
-    amplicon_length <- ceiling(mean(ws))
-    draft_reads_fq_first <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_first_allele.fastq")
-    draft_reads_fa_first <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_first_allele.fasta")
-    seed <- 1
-    system(paste0(SEQTK, " sample -s ", seed , " ", first_allele_reads_fq, " ",  target_reads_consensus, " > ", draft_reads_fq_first))
-    system(paste0(SEQTK, " seq -A ", draft_reads_fq_first, " > ", draft_reads_fa_first))
-    mfa_file_first <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa_first)
-    #system(paste0(MAFFT, " --auto --thread ", num_threads, " --threadit 0 --adjustdirectionaccurately ", draft_reads_fa_first, " > ", mfa_file_first)) #threadit 0 if you need reproducible results
-    if (fast_alignment_flag == 1) {
-      system(paste0(MAFFT, " --auto --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa_first, " > ", mfa_file_first))
-    } else {
-      system(paste0(MAFFT , "-linsi --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa_first, " > ", mfa_file_first))
-    }
-    system(paste0(CONS, " -sequence ", mfa_file_first, " -plurality ", plurality_value, " -outseq ", draft_consensus_first_tmp1))
-    system(paste0("sed 's/[nN]//g' ", draft_consensus_first_tmp1, " > ", draft_consensus_first_tmp2))
-    DNAStringSet_obj <- readDNAStringSet(draft_consensus_first_tmp2, "fasta")
-    DNAStringSet_obj_renamed <- DNAStringSet_obj
-    original_headers <- names(DNAStringSet_obj)
-    sequences <- seq(DNAStringSet_obj)
-    names(DNAStringSet_obj_renamed) <- "Allele_number_1"
-    writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_consensus_first, format = "fasta", width = 20000)
-    if (pair_strands_flag != 1) {
-      num_threads_medaka <- min(num_threads, 8)
-      paf_file_first <- gsub(pattern = "\\.fastq$", replacement = ".paf", x = first_allele_reads_fq)
-      racon_consensus_first <- paste0(sample_dir, "/", sample_name, "_racon_first_allele.fasta")
-      polishing_reads_fq_first <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_first_allele.fastq")
-      seed <- 2
-      system(paste0(SEQTK, " sample -s ", seed , " ", first_allele_reads_fq, " ",  target_reads_polishing, " > ", polishing_reads_fq_first))
-      cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
-      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_first, " ", polishing_reads_fq_first, " > ", paf_file_first))
-      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq_first, " ", paf_file_first, " ", draft_consensus_first, " > ", racon_consensus_first))
-      if (length(which(readLines(racon_consensus_first) != "")) == 0) {
-        cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #1"), sep = "\n")
-        cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #1"),  file = logfile, sep = "\n", append = TRUE)
-        system(paste0("cp ", draft_consensus_first, " ", racon_consensus_first))
-      }      
-      cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #1"), sep = "\n")
-      system(paste0(MEDAKA, "_consensus -i ", polishing_reads_fq_first, " -d ", racon_consensus_first, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_first_allele"))
-      system(paste0("cp ", sample_dir, "/medaka_first_allele/consensus.fasta ", first_allele_untrimmed))
-      system(paste0(SEQTK, " trimfq ", first_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
-    } else {
-      system(paste0(SEQTK, " trimfq ", draft_consensus_first, " -b ", primers_length, " -e ", primers_length, " > ", first_allele))
-    }
-    setwd(analysis_dir)
-    system(paste0(TRF, " ", first_allele, " 2 7 7 80 10 50 500"))
-    system(paste0(TRF, " ", first_allele, " 2 3 5 80 10 14 500"))
-    system(paste0(TRF, " ", first_allele, " 2 500 500 80 10 50 500"))
-    default_trf_par_files <-  list.files(path = analysis_dir, pattern = "\\.2\\.7\\.7\\.80\\.10\\.50\\.500", full.names = TRUE)
-    stringent_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.500\\.500\\.80\\.10\\.50\\.500", full.names = TRUE)
-    lenient_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.3\\.5\\.80\\.10\\.14\\.500", full.names = TRUE)
-    system(paste0("mv ", paste0(lenient_trf_par_files, collapse = " "), " ", sample_dir))
-    system(paste0("mv ", paste0(stringent_trf_par_files, collapse = " "), " ", sample_dir))
-  }
-  #create consensus sequence for Allele #2
-  target_reads_consensus <- TRC
-  target_reads_polishing <- TRP  
+  cat(text = paste0("Reads files for sample ", sample_name, ": ", allele_reads_fq_all), sep = "\n")
+  return(allele_reads_fq_all)
+}
 
-  if (skip_second_allele_flag == 1) {
-    cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_second), "%) from sample ", sample_name, " have been assigned to Allele #2; skipping"), sep = "\n")
-    cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads (", sprintf("%.2f", allelic_ratio_perc_second), "%) from sample ", sample_name, " have been assigned to Allele #2; skipping"),  file = logfile, sep = "\n", append = TRUE)
+Obtain_consensus <- function(fastq_file, num_reads_sample, allele_num) {
+  fasta_file <- gsub(pattern = "\\.fastq", replacement = ".fasta", x = fastq_file)
+  sample_dir <- dirname(fasta_file)
+  sample_name <- gsub(pattern = "_reads_allele_.*", replacement = "", x = basename(fasta_file))
+  num_reads_allele <- as.double(system(paste0("cat ", fasta_file, " | grep \"^>\" | wc -l"), intern=TRUE))
+  
+  #create consensus sequence
+  allelic_ratio <- num_reads_allele/num_reads_sample
+  allelic_ratio_perc <- allelic_ratio*100
+  
+  cat(text = paste0("Sample ", sample_name, ": ", sprintf("%.2f", allelic_ratio_perc), "% reads assigned to Allele #", allele_num), sep = "\n")
+  cat(text = paste0("Sample ", sample_name, ": ", sprintf("%.2f", allelic_ratio_perc), "% reads assigned to Allele #", allele_num),  file = logfile, sep = "\n", append = TRUE)
+  #if not at least 3 reads are assigned to the allele, consensus calling is skipped
+  if (num_reads_allele < 3 || allelic_ratio < min_maf) {
+    cat(text = paste0("WARNING: Only ", num_reads_allele, " reads available for sample ", sample_name, " for Allele #", allele_num, "; skipping consensus calling"), sep = "\n")
+    cat(text = paste0("WARNING: Only ", num_reads_allele, " reads available for sample ", sample_name, " for Allele #", allele_num, "; skipping consensus calling"),  file = logfile, sep = "\n", append = TRUE)
+    allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_allele_", allele_num, "_untrimmed.fasta")
+    allele <- paste0(analysis_dir, "/", sample_name, "_allele_", allele_num, ".fasta")
+    system(paste0("head -n2 ", fasta_file, " > ", allele_untrimmed))
+    system(paste0(SEQTK, " trimfq ", allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", allele))
+    setwd(analysis_dir)
+    system(paste0(TRF, " ", allele, " 2 7 7 80 10 50 500"))
+    system(paste0(TRF, " ", allele, " 2 3 5 80 10 14 500"))
+    system(paste0(TRF, " ", allele, " 2 500 500 80 10 50 500"))
   } else {
-    if (num_reads_second_allele < target_reads_consensus) {
-      target_reads_consensus <- num_reads_second_allele
-      target_reads_polishing <- num_reads_second_allele
-      cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"), sep = "\n")
-      cat(text = paste0("WARNING: Only ", num_reads_second_allele, " reads available for sample ", sample_name, " for Allele #2"),  file = logfile, sep = "\n", append = TRUE)
-    } 
+    if (num_reads_allele < target_reads_consensus) {
+      target_reads_consensus <- num_reads_allele
+      target_reads_polishing <- num_reads_allele
+      cat(text = paste0("WARNING: Only ", num_reads_allele, " reads available for sample ", sample_name, " for Allele #", allele_num), sep = "\n")
+      cat(text = paste0("WARNING: Only ", num_reads_allele, " reads available for sample ", sample_name, " for Allele #", allele_num),  file = logfile, sep = "\n", append = TRUE)
+    }
     plurality_value <- PLUR*target_reads_consensus
-    draft_consensus_second_tmp1 <- paste0(sample_dir, "/", sample_name, "_draft_second_allele_tmp1.fasta")
-    draft_consensus_second_tmp2 <- paste0(sample_dir, "/", sample_name, "_draft_second_allele_tmp2.fasta")
-    draft_consensus_second <- paste0(sample_dir, "/", sample_name, "_draft_second_allele.fasta")
-    second_allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_draft_second_allele_untrimmed.fasta")
-    second_allele <- paste0(analysis_dir, "/", sample_name, "_second_allele.fasta")
-    sequences <- readDNAStringSet(fasta_files[i], "fasta")
+    draft_consensus_tmp1 <- paste0(sample_dir, "/", sample_name, "_draft_allele_", allele_num, "_tmp1.fasta")
+    draft_consensus_tmp2 <- paste0(sample_dir, "/", sample_name, "_draft_allele_", allele_num, "_tmp2.fasta")
+    draft_consensus <- paste0(sample_dir, "/", sample_name, "_draft_allele_", allele_num, ".fasta")
+    allele_untrimmed <- paste0(analysis_dir, "/", sample_name, "/", sample_name, "_draft_allele_", allele_num, "_untrimmed.fasta")
+    allele <- paste0(analysis_dir, "/", sample_name, "_allele_", allele_num, ".fasta")
+    sequences <- readDNAStringSet(fasta_file, "fasta")
     ws <- width(sequences)
     amplicon_length <- ceiling(mean(ws))
-    draft_reads_fq_second <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_second_allele.fastq")
-    draft_reads_fa_second <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_second_allele.fasta")
+    draft_reads_fq <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_allele_", allele_num, ".fastq")
+    draft_reads_fa <- paste0(sample_dir, "/", sample_name, "_draft_", target_reads_consensus, "_reads_allele_", allele_num, ".fasta")
     seed <- 1
-    system(paste0(SEQTK, " sample -s ", seed , " ", second_allele_reads_fq, " ",  target_reads_consensus, " > ", draft_reads_fq_second))
-    system(paste0(SEQTK, " seq -A ", draft_reads_fq_second, " > ", draft_reads_fa_second))
-    mfa_file_second <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa_second)
-    #system(paste0(MAFFT, " --auto --thread ", num_threads, " --threadit 0 --adjustdirectionaccurately ", draft_reads_fa_second, " > ", mfa_file_second)) #threadit 0 if you need reproducible results
+    system(paste0(SEQTK, " sample -s ", seed , " ", fastq_file, " ",  target_reads_consensus, " > ", draft_reads_fq))
+    system(paste0(SEQTK, " seq -A ", draft_reads_fq, " > ", draft_reads_fa))
+    mfa_file <- gsub(pattern = "\\.fasta$", replacement = ".mfa", x = draft_reads_fa)
+    #system(paste0(MAFFT, " --auto --thread ", num_threads, " --threadit 0 --adjustdirectionaccurately ", draft_reads_fa, " > ", mfa_file)) #threadit 0 if you need reproducible results
     if (fast_alignment_flag == 1) {
-      system(paste0(MAFFT, " --auto --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa_second, " > ", mfa_file_second))
+      system(paste0(MAFFT, " --auto --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa, " > ", mfa_file))
     } else {
-      system(paste0(MAFFT, "-linsi --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa_second, " > ", mfa_file_second))
+      system(paste0(MAFFT , "-linsi --thread ", num_threads, " --adjustdirectionaccurately ", draft_reads_fa, " > ", mfa_file))
     }
-    system(paste0(CONS, " -sequence ", mfa_file_second, " -plurality ", plurality_value, " -outseq ", draft_consensus_second_tmp1))
-    system(paste0("sed 's/[nN]//g' ", draft_consensus_second_tmp1, " > ", draft_consensus_second_tmp2))
-    DNAStringSet_obj <- readDNAStringSet(draft_consensus_second_tmp2, "fasta")
+    system(paste0(CONS, " -sequence ", mfa_file, " -plurality ", plurality_value, " -outseq ", draft_consensus_tmp1))
+    system(paste0("sed 's/[nN]//g' ", draft_consensus_tmp1, " > ", draft_consensus_tmp2))
+    DNAStringSet_obj <- readDNAStringSet(draft_consensus_tmp2, "fasta")
     DNAStringSet_obj_renamed <- DNAStringSet_obj
     original_headers <- names(DNAStringSet_obj)
     sequences <- seq(DNAStringSet_obj)
-    names(DNAStringSet_obj_renamed) <- "Allele_number_2"
-    writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_consensus_second, format = "fasta", width = 20000)
+    names(DNAStringSet_obj_renamed) <- paste0("Allele_number_", allele_num)
+    writeXStringSet(x = DNAStringSet_obj_renamed, filepath = draft_consensus, format = "fasta", width = 20000)
     if (pair_strands_flag != 1) {
       num_threads_medaka <- min(num_threads, 8)
-      paf_file_second <- gsub(pattern = "\\.fastq$", replacement = ".paf", x = second_allele_reads_fq)
-      racon_consensus_second <- paste0(sample_dir, "/", sample_name, "_racon_second_allele.fasta")
-      polishing_reads_fq_second <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_second_allele.fastq")
+      paf_file <- gsub(pattern = "\\.fastq$", replacement = ".paf", x = fastq_file)
+      racon_consensus <- paste0(sample_dir, "/", sample_name, "_racon_allele_", allele_num, ".fasta")
+      polishing_reads_fq <- paste0(sample_dir, "/", sample_name, "_polishing_", target_reads_polishing, "_reads_allele_", allele_num, ".fastq")
       seed <- 2
-      system(paste0(SEQTK, " sample -s ", seed , " ", second_allele_reads_fq, " ",  target_reads_polishing, " > ", polishing_reads_fq_second))
-      cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
-      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus_second, " ", polishing_reads_fq_second, " > ", paf_file_second))
-      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq_second, " ", paf_file_second, " ", draft_consensus_second, " > ", racon_consensus_second))
-      if (length(which(readLines(racon_consensus_second) != "")) == 0) {
-        cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #2"), sep = "\n")
-        cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #2"),  file = logfile, sep = "\n", append = TRUE)
-        system(paste0("cp ", draft_consensus_second, " ", racon_consensus_second))
+      system(paste0(SEQTK, " sample -s ", seed , " ", fastq_file, " ",  target_reads_polishing, " > ", polishing_reads_fq))
+      cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #", allele_num), sep = "\n")
+      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus, " ", polishing_reads_fq, " > ", paf_file))
+      system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq, " ", paf_file, " ", draft_consensus, " > ", racon_consensus))
+      if (length(which(readLines(racon_consensus) != "")) == 0) {
+        cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #", allele_num), sep = "\n")
+        cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #", allele_num),  file = logfile, sep = "\n", append = TRUE)
+        system(paste0("cp ", draft_consensus, " ", racon_consensus))
       }
-      cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #2"), sep = "\n")
-      system(paste0(MEDAKA, "_consensus -i ", polishing_reads_fq_second, " -d ", racon_consensus_second, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_second_allele"))
-      system(paste0("cp ", sample_dir, "/medaka_second_allele/consensus.fasta ", second_allele_untrimmed))
-      system(paste0(SEQTK, " trimfq ", second_allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
+      cat(text = paste0("Running Medaka for consensus polishing of sample ", sample_name, " - Allele #", allele_num), sep = "\n")
+      system(paste0(MEDAKA, "_consensus -i ", polishing_reads_fq, " -d ", racon_consensus, " -m ", medaka_model, " -t ", num_threads_medaka, " -o ", sample_dir, "/medaka_allele_", allele_num))
+      system(paste0("cp ", sample_dir, "/medaka_allele_", allele_num, "/consensus.fasta ", allele_untrimmed))
+      system(paste0(SEQTK, " trimfq ", allele_untrimmed, " -b ", primers_length, " -e ", primers_length, " > ", allele))
     } else {
-      system(paste0(SEQTK, " trimfq ", draft_consensus_second, " -b ", primers_length, " -e ", primers_length, " > ", second_allele))
+      system(paste0(SEQTK, " trimfq ", draft_consensus, " -b ", primers_length, " -e ", primers_length, " > ", allele))
     }
     setwd(analysis_dir)
-    system(paste0(TRF, " ", second_allele, " 2 7 7 80 10 50 500"))
-    system(paste0(TRF, " ", second_allele, " 2 3 5 80 10 14 500"))
-    system(paste0(TRF, " ", second_allele, " 2 500 500 80 10 50 500"))
+    system(paste0(TRF, " ", allele, " 2 7 7 80 10 50 500"))
+    system(paste0(TRF, " ", allele, " 2 3 5 80 10 14 500"))
+    system(paste0(TRF, " ", allele, " 2 500 500 80 10 50 500"))
     default_trf_par_files <-  list.files(path = analysis_dir, pattern = "\\.2\\.7\\.7\\.80\\.10\\.50\\.500", full.names = TRUE)
     stringent_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.500\\.500\\.80\\.10\\.50\\.500", full.names = TRUE)
     lenient_trf_par_files <- list.files(path = analysis_dir, pattern = "\\.2\\.3\\.5\\.80\\.10\\.14\\.500", full.names = TRUE)
     system(paste0("mv ", paste0(lenient_trf_par_files, collapse = " "), " ", sample_dir))
     system(paste0("mv ", paste0(stringent_trf_par_files, collapse = " "), " ", sample_dir))
+  }
+}
+
+###PARAMETERS SETTING
+
+PIPELINE_DIR <- dirname(strsplit(commandArgs(trailingOnly = FALSE)[4],"=")[[1]][2])
+
+CONFIG_FILE <- paste0(PIPELINE_DIR, "/config_CharONT.R")
+source(CONFIG_FILE)
+
+if (!exists("sequencing_summary")) {
+  seq_sum_flag <- 0
+} else {
+  seq_sum_flag <- 1
+}
+
+if (!exists("num_threads")) {
+  num_threads <- 8
+}
+
+if (!exists("num_alleles")) {
+  num_alleles <- 2
+}
+
+if (!exists("pair_strands_flag")) {
+  pair_strands_flag <- 0
+}
+
+if (!exists("primers_length")) {
+  primers_length <- 25
+}
+
+if (!exists("min_maf")) {
+  min_maf <- 0.2
+}
+
+if (!exists("IQR_outliers_coef")) {
+  IQR_outliers_coef <- 3
+}
+
+if (!exists("IQR_outliers_coef_precl")) {
+  IQR_outliers_coef_precl <- 10
+}
+
+
+if (!exists("fast_alignment_flag")) {
+  fast_alignment_flag <- 1
+}
+
+if (!exists("min_clipped_len")) {
+  min_clipped_len <- 50
+}
+
+if (!exists("TRC")) {
+  TRC <- 50
+}
+
+if (!exists("TRP")) {
+  TRP <- 200
+}
+
+if (!exists("THR")) {
+  THR <- 0.85
+}
+
+if (!exists("PLUR")) {
+  PLUR <- 0.15
+}
+
+if (!exists("max_num_reads_clustering")) {
+  max_num_reads_clustering <- 500
+}
+
+if (!exists("sd_noise_score")) {
+  sd_noise_score <- 0.2
+}
+
+logfile <- paste0(analysis_dir, "/logfile.txt")
+
+###MAIN
+
+fastq_files <- list.files(path = analysis_dir, pattern = "\\.fastq", full.names = TRUE)
+fasta_files <- list.files(path = analysis_dir, pattern = "\\.fasta", full.names = TRUE)
+
+if (length(fastq_files) == 0) {
+  stop(paste0("No fastq files in ", analysis_dir, " directory"))
+}
+
+if (length(fasta_files) > 0) {
+  cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
+} else {
+  for (i in 1:length(fastq_files)) {
+    fasta_file_curr <- paste0(analysis_dir, "/", gsub(pattern = "\\.fastq$", replacement = "\\.fasta", x = basename(fastq_files[i])))
+    fasta_files <- c(fasta_files, fasta_file_curr)
+    system(paste0(SEQTK, " seq -A ", fastq_files[i], " > ", fasta_file_curr))
+  }
+  cat(text = paste0("Processing fasta files ", paste0(basename(fasta_files), collapse = ", ")), sep = "\n")
+}
+
+available_medaka_models <- system(paste0(MEDAKA, " tools list_models"), intern = TRUE)[1]
+
+if (length(grep(pattern = medaka_model, x = available_medaka_models)) > 0) {
+  cat(text = paste0("Medaka model: ", medaka_model), sep = "\n")
+  cat(text = paste0("Medaka model: ", medaka_model), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
+} else {
+  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g351 was selected"), sep = "\n")
+  cat(text = paste0("Medaka model: ", medaka_model, " is not available; default model r941_min_high_g351 was selected"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)  
+  medaka_model <- "r941_min_high_g360"
+}
+
+if (num_alleles == 1) {
+  cat(text = "Pipeline running in haploid mode", sep = "\n")
+  cat(text = "Pipeline running in haploid mode", file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as Outliers"), sep = "\n")
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
+} else {
+  cat(text = paste0("Number of expected alleles:  ", num_alleles), sep = "\n")
+  cat(text = paste0("Number of expected alleles:  ", num_alleles), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as candidate Outliers"), sep = "\n")
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef_precl, "*IQR or Score < 1st_QR - ", IQR_outliers_coef_precl, "*IQR will be labelled as candidate Outliers"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR within each cluster will be labelled as Outliers"), sep = "\n")
+  cat(text = paste0("Reads with Score > 3rd_QR + ", IQR_outliers_coef, "*IQR or Score < 1st_QR - ", IQR_outliers_coef, "*IQR within each cluster will be labelled as Outliers"), file = logfile, sep = "\n", append = TRUE)
+  cat(text = "\n", file = logfile, append = TRUE)
+}
+
+#cycle over fasta files
+for (i in 1:length(fastq_files)) {
+  #set the number of target reads for consensus and for polishing
+  target_reads_consensus <- TRC
+  target_reads_polishing <- TRP
+  #minimum number of aligned bases at a specific position to include the base in draft consensus
+  plurality_value <- PLUR*target_reads_consensus
+  #seed for subsampling
+  seed <- 1
+  #Obtain preliminary consensus sequence for allele #1
+  output_prel_cons <- Obtain_preliminary_consensus(fastq_file = fastq_files[i])
+  fap <- output_prel_cons[[1]]
+  nrs <- output_prel_cons[[2]]
+  #Calculate reads scores and assign each read to a cluster
+  clustered_reads <- Cluster_reads(fastq_file = fastq_files[i], first_allele_preliminary = fap, num_reads_sample = nrs)
+  #Obtain consensus sequence for each allele
+  for (j in 1:num_alleles) {
+    Obtain_consensus(fastq_file = clustered_reads[j], num_reads_sample = nrs, allele_num = j)
   }
 }
