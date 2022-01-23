@@ -741,7 +741,7 @@ if (num_alleles == 1) {
   cat(text = "\n", file = logfile, append = TRUE)
 }
 
-#cycle over fasta files
+#cycle over fastq files
 for (i in 1:length(fastq_files)) {
   #set the number of target reads for consensus and for polishing
   target_reads_consensus <- TRC
