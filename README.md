@@ -1,6 +1,6 @@
 # CharONT
 
-**CharONT** is a consensus calling pipeline meant for characterizing long genomic regions from diploid organisms. Starting from ONT reads including a shared flanking sequence, it provides consensus sequences for the two alleles and tandem repeats annotations. In case you used an enrichment method different to PCR (e.g. CRISPR-Cas9 or Xdrop), or performed WGS, amplicon-like sequences can be extracted _in-silico_ based on known flanking sequences. Moreover, a preprocessing pipeline is provided, so to make the whole bioinformatic analysis from raw fast5 files to consensus sequences straightforward and simple.
+**CharONT** is a consensus calling pipeline meant for characterizing long genomic regions from organisms with ploidy >= 1. Starting from ONT reads including a shared flanking sequence, it provides consensus sequences for each allele and tandem repeats annotations. In case you used an enrichment method different to PCR (e.g. CRISPR-Cas9 or Xdrop), or performed WGS, amplicon-like sequences can be extracted _in-silico_ based on known flanking sequences. Moreover, a preprocessing pipeline is provided, so to make the whole bioinformatic analysis from raw fast5 files to consensus sequences straightforward and simple. Since v1.1.0, support for polyploid organisms (n > 2) is enabled.
 
 <p align="center">
   <img src="Figures/CharONT_logo.png" alt="drawing" width=450" title="CharONT_logo">
@@ -22,7 +22,7 @@ chmod 755 Miniconda3-latest-Linux-x86_64.sh
 
 Then, after completing _CharONT_ installation, set the _MINICONDA_DIR_ variable in **config_CharONT.R** to the full path to miniconda3 directory.
 
-* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v5.0.
+* Guppy, the software for basecalling and demultiplexing provided by ONT. Tested with Guppy v6.0.
 If you don't have [Guppy](https://community.nanoporetech.com/downloads) installed, choose an appropriate version and install it.
 For example, you could download and unpack the archive with:
 ```
@@ -83,11 +83,9 @@ Inputs:
 * \<analysis_dir\>: directory containing fastq files for each sample
 
 Outputs (saved in <analysis_dir>):
-* \<"sample_name"\_first_allele.fasta\>: consensus sequence for first allele in fasta format
-* \<"sample_name"\_first_allele.fasta."trf scores".html\>: Tandem Repeat Finder report for first allele sequence
-* \<"sample_name"\_second_allele.fasta\>: consensus sequence for second allele in fasta format
-* \<"sample_name"\_second_allele.fasta."trf scores".html\>: Tandem Repeat Finder report for second allele sequence
-* \<"sample_name"\>: directory including intermediate files
+* \<sample_name\>\_allele\_\<x\>.fasta: consensus sequence for allele \<x\> in fasta format
+* \<sample_name\>\_allele\_\<x\>.fasta.\<trf_scores\>.html\>: Tandem Repeat Finder report for allele \<x\> sequence
+* \<sample_name\>: directory including intermediate files
 
 **Launch_CharONT.sh**
 
@@ -101,11 +99,9 @@ Input
 
 Outputs (saved in \<fast5_dir\>\_analysis/analysis):
 
-* \<"sample_name"\_first_allele.fasta\>: consensus sequence for first allele in fasta format
-* \<"sample_name"\_first_allele.fasta."trf scores".html\>: Tandem Repeat Finder report for first allele sequence
-* \<"sample_name"\_second_allele.fasta\>: consensus sequence for second allele in fasta format
-* \<"sample_name"\_second_allele.fasta."trf scores".html\>: Tandem Repeat Finder report for second allele sequence
-* \<"sample_name"\>: directory including intermediate files
+* \<sample_name\>\_allele\_\<x\>.fasta: consensus sequence for first allele in fasta format
+* \<sample_name\>\_allele\_\<x\>.fasta.\<trf_scores\>.html: Tandem Repeat Finder report for first allele sequence
+* \<sample_name\>: directory including intermediate files
 
 Outputs (saved in \<fast5_dir\>\_analysis/qc):
 * Read length distributions and pycoQC report
@@ -118,35 +114,35 @@ Outputs (saved in \<fast5_dir\>\_analysis/preprocessing):
 
 **Extract_amplicons.sh**
 
-Usage: Extract_amplicons.sh \<"sample_name".fastq\> \<primer_sequence_one\> \<primer_sequence_two\> \<pcr_id_thr\>
+Usage: Extract_amplicons.sh \<sample_name\>.fastq \<primer_sequence_one\> \<primer_sequence_two\> \<pcr_id_thr\>
 
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running.
 
 Inputs:
-* \<"sample_name".fastq\>: fastq file containing reads that need filtering and trimming to look like amplicons
+* \<sample_name\>.fastq: fastq file containing reads that need filtering and trimming to look like amplicons
 * \<primer_sequence_one\>: sequence of first _in-silico_ PCR primer to look for, flanking the region of interest
 * \<primer_sequence_two\>: sequence of second _in-silico_ PCR primer to look for, flanking the region of interest
 * \<pcr_id_thr>: minimum identity threshold that _in-silico_ PCR primers need for annealing
 
 Outputs:
-* \<"sample_name"\_trimmed.fastq\>: fastq file containing amplicon-like sequences extracted from \<"sample_name".fastq\> based on \<primer_sequence_one\> and \<primer_sequence_two\> sequences
-* \<"sample_name"\_in_silico_pcr_one.sam\>: sam file containing alignments between \<primer_sequence_one\> and \<fastq_reads\>
-* \<"sample_name"\_in_silico_pcr_two.sam\>: sam file containing alignments between \<primer_sequence_two\> and \<fastq_reads\>
+* \<sample_name\>\_trimmed.fastq: fastq file containing amplicon-like sequences extracted from \<sample_name\>.fastq based on \<primer_sequence_one\> and \<primer_sequence_two\> sequences
+* \<sample_name\>\_in_silico_pcr_one.sam: sam file containing alignments between \<primer_sequence_one\> and \<fastq_reads\>
+* \<sample_name\>\_in_silico_pcr_two.sam: sam file containing alignments between \<primer_sequence_two\> and \<fastq_reads\>
 
 **Extract_Xdrop_alignments.sh**
 
-Usage: Extract_Xdrop_alignments.sh \<"sample_name".fastq\> \<reference_genome.fasta\> \<target_file.bed\>
+Usage: Extract_Xdrop_alignments.sh \<sample_name\>.fastq \<reference_genome\>.fasta \<target_file\>.bed
 
 Note: Activate the virtual environment with ```source activate CharONT_env``` before running; moreover, pcrclipreads.jar and samextractclip.jar from jvarkit should be installed.
 
 Inputs:
-* \<"sample_name".fastq\>: fastq file containing reads that need filtering and trimming and chimera removal to look like amplicons
-* \<reference_genome.fasta\>: fasta file with reference genome (e.g. hg38 human genome)
-* \<target_file.bed\>: bed file with the coordinates of the target of interest and the flanking regions
+* \<sample_name\>.fastq: fastq file containing reads that need filtering and trimming and chimera removal to look like amplicons
+* \<reference_genome\>.fasta: fasta file with reference genome (e.g. hg38 human genome)
+* \<target_file\>.bed: bed file with the coordinates of the target of interest and the flanking regions
 
 Outputs:
-* \<"sample_name"\_target_extracted.fastq\>: fastq file containing amplicon-like sequences in forward orientation extracted from \<"sample_name".fastq\> based on the bed file coordinates
-* \<Xdrop_reads_extraction\>: directory containing temporary files
+* \<sample_name\>\_target_extracted.fastq: fastq file containing amplicon-like sequences in forward orientation extracted from \<sample_name\>.fastq based on the bed file coordinates
+* Xdrop\_reads\_extraction: directory containing temporary files
 
 
 ## Auxiliary scripts
