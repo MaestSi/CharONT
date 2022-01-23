@@ -59,8 +59,8 @@ require_two_barcodes_flag <- 0
 min_qual <- 7
 #minimum minor allele frequency; if less than min_maf*100% of reads are assigned to Allele #2, the sample is assumed homozygous
 min_maf <- 0.2
-#set haploid_flag <- 1 if you are studying haploid chromsomes (e.g. sexual chrosomomes in male); otherwise set haploid_flag <- 0
-haploid_flag <- 0
+#num_alleles represents the number of expected alleles
+num_alleles <- 2
 #label as candidate outliers reads with score > 3rd_QR + IQR_outliers_coef_precl*IQR or score < 1st_QR - IQR_outliers_coef_precl*IQR
 IQR_outliers_coef_precl <- 3
 #label as outliers reads with score > 3rd_QR + IQR_outliers_coef*IQR or score < 1st_QR - IQR_outliers_coef*IQR; IQR is computed within each cluster
