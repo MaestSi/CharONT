@@ -1,5 +1,5 @@
 #
-# Copyright 2022 Simone Maestri. All rights reserved.
+# Copyright 2020 Simone Maestri. All rights reserved.
 # Simone Maestri <simone.maestri@univr.it>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -323,6 +323,8 @@ Cluster_reads <- function(fastq_file, first_allele_preliminary, num_reads_sample
     cluster_alternative_id <- (1:num_alleles)[-cluster_reference_id]
     cluster_alternative_index_tmp <- lapply(cluster_alternative_id, function (x) which(clusters$cluster == x))
     names(cluster_alternative_index_tmp) <- paste0("Allele_", cluster_alternative_id)
+    ref_id <- paste0("Allele_", cluster_reference_id)
+    alt_id <- paste0("Allele_", cluster_alternative_id)
     #if there are any preclustering outliers
     if (num_preclustering_outliers > 0) {
       #for each preclustering outlier, calculate distance from the clusters' centers
@@ -335,8 +337,6 @@ Cluster_reads <- function(fastq_file, first_allele_preliminary, num_reads_sample
       #associate preclustering outliers' scores to alleles
       preclustering_outliers_score_split <- lapply(split(preclustering_outliers_score, preclustering_outliers_cluster_id), function(x) matrix(data = x, ncol = 2, byrow = FALSE))
       names(preclustering_outliers_score_split) <- paste0("Allele_", names(preclustering_outliers_score_split))
-      ref_id <- paste0("Allele_", cluster_reference_id)
-      alt_id <- paste0("Allele_", cluster_alternative_id)
       preclustering_outliers_score_reference <- preclustering_outliers_score_split[ref_id]
       preclustering_outliers_score_alternative <- preclustering_outliers_score_split[names(preclustering_outliers_score_split) %in% alt_id]
       
@@ -360,7 +360,7 @@ Cluster_reads <- function(fastq_file, first_allele_preliminary, num_reads_sample
     } else {
       cluster_reference_score <- matrix(preclustering_score_no_outliers[cluster_reference_index_tmp, ], ncol = 2)
       cluster_alternative_score <- list()
-      for (l in names(preclustering_outliers_score_alternative)) {
+      for (l in names(cluster_alternative_index_tmp)) {
         cluster_alternative_score[[l]] <- matrix(preclustering_score_no_outliers[cluster_alternative_index_tmp[[l]], ], ncol = 2)
       }
     }
@@ -443,11 +443,11 @@ Cluster_reads <- function(fastq_file, first_allele_preliminary, num_reads_sample
   #col_list <- colours()[sample(x = 1:length(colours()), size = 10, replace = FALSE)]
   #col_list <- rainbow(n = 10)
   col_list <- c('#3cb44b', '#4363d8', '#ffe119', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000')
-  png(paste0(sample_dir, "/", sample_name, "_reads_scores_smoothScatter.png"))
-  smoothScatter(score[-ind_outliers, ], xlab = xlabplot, ylab = ylabplot, main = "Reads scores")
-  dev.off()
   
   if (num_outliers > 0) {
+    png(paste0(sample_dir, "/", sample_name, "_reads_scores_smoothScatter.png"))
+    smoothScatter(score[-ind_outliers, ], xlab = xlabplot, ylab = ylabplot, main = "Reads scores")
+    dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
     plot(matrix(score[-ind_outliers, ], ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "black", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
     points(matrix(score[ind_outliers, ], ncol = 2), col = "red2", type = "p", pch = 15, cex = 2)
@@ -492,6 +492,9 @@ Cluster_reads <- function(fastq_file, first_allele_preliminary, num_reads_sample
     system(paste0(SEQTK, " subseq ", fastq_file, " ", outliers_reads_names, " > ", outliers_reads_fq))
     reads_names_no_outliers <- reads_names[-ind_outliers]
   } else {
+    png(paste0(sample_dir, "/", sample_name, "_reads_scores_smoothScatter.png"))
+    smoothScatter(score, xlab = xlabplot, ylab = ylabplot, main = "Reads scores")
+    dev.off()
     png(paste0(sample_dir, "/", sample_name, "_reads_scores.png"))
     plot(matrix(score, ncol = 2), xlab = xlabplot, ylab = ylabplot, main = "Reads scores", col = "black", type = "p", pch = 19, cex = 2, xlim = c(0, max(score[, 1])*1.5),  ylim = c(0, max(score[, 2])*1.5))
     if (num_alleles > 1) {
@@ -741,7 +744,7 @@ if (num_alleles == 1) {
   cat(text = "\n", file = logfile, append = TRUE)
 }
 
-#cycle over fastq files
+#cycle over fasta files
 for (i in 1:length(fastq_files)) {
   #set the number of target reads for consensus and for polishing
   target_reads_consensus <- TRC
