@@ -591,7 +591,7 @@ Obtain_consensus <- function(fastq_file, num_reads_sample, allele_num) {
       seed <- 2
       system(paste0(SEQTK, " sample -s ", seed , " ", fastq_file, " ",  target_reads_polishing, " > ", polishing_reads_fq))
       cat(text = paste0("Running Racon for consensus polishing of sample ", sample_name, " - Allele #", allele_num), sep = "\n")
-      system(paste0(MINIMAP2, " -x ava-ont ", draft_consensus, " ", polishing_reads_fq, " > ", paf_file))
+      system(paste0(MINIMAP2, " -x map-ont ", draft_consensus, " ", polishing_reads_fq, " > ", paf_file))
       system(paste0(RACON, " -t ", num_threads, " -m 8 -x -6 -g -8 -w 500 --no-trimming ", polishing_reads_fq, " ", paf_file, " ", draft_consensus, " > ", racon_consensus))
       if (length(which(readLines(racon_consensus) != "")) == 0) {
         cat(text = paste0("WARNING: Failed to run Racon for sample ", sample_name, " for Allele #", allele_num), sep = "\n")
