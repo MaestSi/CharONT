@@ -1,3 +1,5 @@
+*CharONT is no longer mantained. Please use [CharONT2](https://github.com/MaestSi/CharONT2) pipeline instead.*
+
 # CharONT
 
 **CharONT** is a consensus calling pipeline meant for characterizing long genomic regions - such as Short Tandem Repeats - from organisms with ploidy >= 1. Starting from ONT reads including a shared flanking sequence, it provides consensus sequences for each allele and tandem repeats annotations. In case you used an enrichment method different to PCR (e.g. CRISPR-Cas9 or Xdrop), or performed WGS, amplicon-like sequences can be extracted _in-silico_ based on known flanking sequences. Moreover, a preprocessing pipeline is provided, so to make the whole bioinformatic analysis from raw fast5 files to consensus sequences straightforward and simple. Since v1.1.0, support for polyploid organisms (n > 2) is enabled.
